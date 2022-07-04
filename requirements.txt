@@ -1,0 +1,3 @@
+absl-py==1.1.0
+MegEngine==1.9.1
+tensorboardX==2.5.1
