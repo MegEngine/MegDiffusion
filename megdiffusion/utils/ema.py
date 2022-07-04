@@ -1,8 +1,9 @@
 import numpy as np
 
-def ema(source, target, decay):
-    source_dict = source.state_dict()
-    target_dict = target.state_dict()
-    for key in target_dict.keys():
-        target_dict[key] = np.array(target_dict[key] * decay + source_dict[key] * (1 - decay), dtype="float32")
-    target.load_state_dict(target_dict)
+from megengine.module import Module
+
+def ema(source: Module, target: Module, decay: float):
+    """Update target module's parameters with Exponential Moving Average algorithm."""
+    for sp, tp in zip(source.parameters(), target.parameters()):
+        tp._reset(tp * decay + sp * (1 - decay))
+        
