@@ -1,6 +1,8 @@
-# MegDiffusion
+<p align="center">
+  <img height="200" src="./assets/logo.png">
+</p>
 
-MegEngine implementation of Diffusion Models. More details are coming soon.
+MegEngine implementation of Diffusion Models.
 
 Current maintainer: [@MegChai](https://github.com/MegChai)
 
