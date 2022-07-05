@@ -66,6 +66,7 @@ def train():
     model = UNet(FLAGS.timesteps, FLAGS.img_resolution, FLAGS.img_channels, FLAGS.img_channels,
         FLAGS.base_channel, FLAGS.chanel_multiplier, FLAGS.attention_resolutions,
         FLAGS.num_res_blocks, FLAGS.dropout)
+    ema_model = copy.deepcopy(model)
 
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.lr)
     gm = autodiff.GradManager()
@@ -73,6 +74,7 @@ def train():
     if FLAGS.resume:
         checkpoint = mge.load(os.path.join(checkpoint_path, "ckpt.pkl"))
         model.load_state_dict(checkpoint["model"])
+        ema_model.load_state_dict(checkpoint["ema_model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         start_step = checkpoint["step"]
     else:
@@ -83,9 +85,7 @@ def train():
         gm.attach(model.parameters(), callbacks=[dist.make_allreduce_cb("sum")])
     else:
         gm.attach(model.parameters())
-
-    ema_model = copy.deepcopy(model)
-
+    
     # diffusion setup
     diffusion = GaussionDiffusion(FLAGS.timesteps, model)
 
@@ -146,17 +146,12 @@ def train():
                 if FLAGS.save_step > 0 and step and step % FLAGS.save_step == 0:
                     ckpt = {
                         "model": model.state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "step": step
-                    }
-                    ema_ckpt = {
-                        "model": ema_model.state_dict(),
+                        "ema_model": ema_model.state_dict(),
                         "optimizer": optimizer.state_dict(),
                         "step": step
                     }
                     
                     mge.save(ckpt, os.path.join(checkpoint_path, "ckpt.pkl"))
-                    mge.save(ema_ckpt, os.path.join(checkpoint_path, "ema_ckpt.pkl"))
 
                 # TODO: evaluate
 
