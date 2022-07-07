@@ -65,6 +65,9 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.lr)
     gm = autodiff.GradManager()
 
+    sample_path = os.path.join(FLAGS.logdir, "samples")
+    checkpoint_path = os.path.join(FLAGS.logdir, "checkpoints")
+
     if FLAGS.resume:
         checkpoint = mge.load(os.path.join(checkpoint_path, "ckpt.pkl"))
         model.load_state_dict(checkpoint["model"])
@@ -86,8 +89,6 @@ def train():
     # logging pre-processing
     if num_worker == 1 or rank == 0:
 
-        sample_path = os.path.join(FLAGS.logdir, "samples")
-        checkpoint_path = os.path.join(FLAGS.logdir, "checkpoints")
         if not os.path.isdir(FLAGS.logdir):
             os.makedirs(FLAGS.logdir)
             os.makedirs(sample_path)
