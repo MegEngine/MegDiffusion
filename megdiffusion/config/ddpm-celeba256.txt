@@ -1,0 +1,29 @@
+# dataset
+--dataset=celeba256
+--dataset_dir=/data/datasets/celeba-256
+--batch_size=64
+# model architecture
+--timesteps=1000
+--img_resolution=256
+--img_channels=3
+--base_channel=128
+--chanel_multiplier=1
+--chanel_multiplier=1
+--chanel_multiplier=2
+--chanel_multiplier=2
+--chanel_multiplier=4
+--chanel_multiplier=4
+--attention_resolutions=16
+--num_res_blocks=2
+--dropout=0.1
+# training
+--resume=False
+--parallel=False
+--lr=0.00002
+--grad_clip=1.
+--ema_decay=0.9999
+--logdir=./logs/DDPM_CELEBA256_EPS
+--sample_size=4
+--total_steps=500000
+--sample_step=10000
+--save_step=5000
