@@ -36,6 +36,7 @@ flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
 # training
 flags.DEFINE_bool("resume", False, help="resume training from saved checkpoint")
 flags.DEFINE_bool("parallel", False, help="multi gpu training")
+flags.DEFINE_bool("dtr", False, help="enable MegEngine DTR algorithm")
 flags.DEFINE_float("lr", 0.0002, help="learning rate of the optimizer")
 flags.DEFINE_float("grad_clip", 1., help="gradient norm clipping")
 flags.DEFINE_integer("total_steps", 800000, help="total training steps")
@@ -53,6 +54,9 @@ def train():
         rank = dist.get_rank()
     else:
         num_worker = 1
+
+    if FLAGS.dtr:
+        mge.dtr.enable()
     
     train_dataloader = build_dataloader(FLAGS.dataset, FLAGS.dataset_dir, FLAGS.batch_size)
     train_queue = iter(train_dataloader)
