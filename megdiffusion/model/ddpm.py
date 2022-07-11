@@ -274,3 +274,19 @@ def ddpm_cifar10(**kwargs):
         num_res_blocks = 2,
         dropout = 0.1,
     )
+
+
+@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10_ema.pkl")
+def ddpm_cifar10_ema(**kwargs):
+    """The deault model configuration used in DDPM paper on CIFAR10 dataset (with EMA)."""
+    return UNet(
+        total_timesteps = 1000,
+        in_resolution = 32,
+        in_channel = 3,
+        out_channel = 3,
+        base_channel = 128,
+        chanel_multiplier = [1, 2, 2, 2],
+        attention_resolutions = [16],
+        num_res_blocks = 2,
+        dropout = 0.1,
+    )

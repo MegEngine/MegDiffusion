@@ -10,17 +10,18 @@ Current maintainer: [@MegChai](https://github.com/MegChai)
 Now users can use `megengine.hub` to get pre-trained models directly:
 
 ```python
+import megengine
 megengine.hub.list("MegEngine/MegDiffusion:main")
-megengine.hub.help("MegEngine/MegDiffusion:main", "ddpm_cifar10")
-model = megengine.hub.load("MegEngine/MegDiffusion:main", "ddpm_cifar10", pretrained=True)
+megengine.hub.help("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema")
+model = megengine.hub.load("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema", pretrained=True)
 model.eval()
 ```
 
 Or if you have downloaded or installed MegDiffusion, you can get pre-trained models from `model` module.
 
 ```python
-from megdiffusion.model import ddpm_cifar10
-model = ddpm_cifar10(pretrained=True)
+from megdiffusion.model import ddpm_cifar10_ema
+model = ddpm_cifar10_ema(pretrained=True)
 model.eval()
 ```
 
@@ -47,8 +48,10 @@ python3 -m megdiffusion.scripts.inference
       --logdir ./path/to/logdir \
       --batch_size=64 \
       --save_step=100000 \
-      --parallel=True
+      --parallel --resume
    ```
+
+See `python3 -m megdiffusion.scripts.train --help` for more information.
 
 Known issues:
 - Training with single GPU & using gradient clipping will cause error in MegEngine 1.9.x version.

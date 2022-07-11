@@ -4,7 +4,7 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ..model import ddpm_cifar10
+from ..model import ddpm_cifar10, ddpm_cifar10_ema
 from ..model.ddpm import UNet
 from ..diffusion import GaussionDiffusion
 from ..utils.transform import linear_scale_rev
@@ -14,6 +14,7 @@ FLAGS = flags.FLAGS
 # input (checkpoint) and ouput
 flags.DEFINE_string("logdir", "./logs/DDPM_CIFAR10_EPS", help="log directory")
 flags.DEFINE_string("outputdir", "./output", help="log directory")
+flags.DEFINE_boolean("ema", True, help="load ema model")
 flags.DEFINE_boolean("pretrain", True, help="use pre-trained model")
 flags.DEFINE_boolean("grid", True, help="make grid of the batch image")
 flags.DEFINE_integer("img_channels", 3, help="num of channels of training example")
@@ -30,14 +31,14 @@ flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
 def infer():
     # model setup
     if FLAGS.pretrain:
-        model = ddpm_cifar10(pretrained=True)
+        model = ddpm_cifar10_ema(pretrained=True) if FLAGS.ema else ddpm_cifar10(pretrained=True)
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
         checkpoint = mge.load(os.path.join(FLAGS.logdir, "checkpoints", "ckpt.pkl"))
         model = UNet(FLAGS.timesteps, FLAGS.img_resolution, FLAGS.img_channels, FLAGS.img_channels,
             FLAGS.base_channel, FLAGS.chanel_multiplier, FLAGS.attention_resolutions,
             FLAGS.num_res_blocks, FLAGS.dropout)
-        model.load_state_dict(checkpoint["model"])
+        model.load_state_dict(checkpoint["ema_model" if FLAGS.ema else "model"])
 
     model.eval()
 
