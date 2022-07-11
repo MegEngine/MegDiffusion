@@ -35,7 +35,7 @@ def make_grid(inp: np.ndarray, nrow: int = 8, padding: int = 2, pad_value: float
             k = k + 1
     return grid
 
-def save_image(grid: np.ndarray, path):
-    cv2.imwrite(path, grid.transpose(1, 2, 0)) # CHW to HWC
+def save_image(inp: np.ndarray, path):
+    cv2.imwrite(path, inp.transpose(1, 2, 0)) # CHW to HWC
 
 
