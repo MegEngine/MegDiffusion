@@ -165,7 +165,8 @@ def train():
 
                 # TODO: evaluate
 
-    writer.close()
+    if num_worker == 1 or rank == 0:
+        writer.close()
 
 def main(argv):
     if FLAGS.parallel:
