@@ -177,7 +177,7 @@ class UNet(M.Module):
                  in_channel: int,
                  out_channel: int = None,
                  base_channel: int = 128,
-                 chanel_multiplier: Sequence[float] = [1, 2, 2, 2],
+                 channel_multiplier: Sequence[float] = [1, 2, 2, 2],
                  attention_resolutions: Sequence[int] = [16],
                  num_res_blocks: int = 2,
                  dropout: float = 0.1,
@@ -196,14 +196,14 @@ class UNet(M.Module):
         cur_ch, cur_res = base_channel, in_resolution
 
         self.downblocks = []
-        for i, mult in enumerate(chanel_multiplier):
+        for i, mult in enumerate(channel_multiplier):
             out_ch = int(base_channel * mult)
             for _ in range(num_res_blocks):
                 self.downblocks.append(ResBlock(
                     cur_ch, out_ch, time_embed_dim, dropout, cur_res in attention_resolutions))
                 cur_ch = out_ch
                 channels.append(cur_ch)
-            if i != len(chanel_multiplier) - 1:
+            if i != len(channel_multiplier) - 1:
                 self.downblocks.append(DownSample(cur_ch))
                 cur_res = cur_res / 2
                 channels.append(cur_ch)
@@ -214,7 +214,7 @@ class UNet(M.Module):
         ]
 
         self.upblocks = []
-        for i, mult in reversed(list(enumerate(chanel_multiplier))):
+        for i, mult in reversed(list(enumerate(channel_multiplier))):
             out_ch = int(base_channel * mult)
             for _ in range(num_res_blocks + 1):
                 self.upblocks.append(ResBlock(
@@ -269,7 +269,7 @@ def ddpm_cifar10(**kwargs):
         in_channel = 3,
         out_channel = 3,
         base_channel = 128,
-        chanel_multiplier = [1, 2, 2, 2],
+        channel_multiplier = [1, 2, 2, 2],
         attention_resolutions = [16],
         num_res_blocks = 2,
         dropout = 0.1,
@@ -285,7 +285,7 @@ def ddpm_cifar10_ema(**kwargs):
         in_channel = 3,
         out_channel = 3,
         base_channel = 128,
-        chanel_multiplier = [1, 2, 2, 2],
+        channel_multiplier = [1, 2, 2, 2],
         attention_resolutions = [16],
         num_res_blocks = 2,
         dropout = 0.1,

@@ -7,10 +7,10 @@
 --img_resolution=32
 --img_channels=3
 --base_channel=128
---chanel_multiplier=1
---chanel_multiplier=2
---chanel_multiplier=2
---chanel_multiplier=2
+--channel_multiplier=1
+--channel_multiplier=2
+--channel_multiplier=2
+--channel_multiplier=2
 --attention_resolutions=16
 --num_res_blocks=2
 --dropout=0.1
