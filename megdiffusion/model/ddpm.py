@@ -177,7 +177,7 @@ class UNet(M.Module):
                  in_channel: int,
                  out_channel: int = None,
                  base_channel: int = 128,
-                 chanel_multiplier: Sequence[int] = [1, 2, 2, 2],
+                 chanel_multiplier: Sequence[float] = [1, 2, 2, 2],
                  attention_resolutions: Sequence[int] = [16],
                  num_res_blocks: int = 2,
                  dropout: float = 0.1,
@@ -197,7 +197,7 @@ class UNet(M.Module):
 
         self.downblocks = []
         for i, mult in enumerate(chanel_multiplier):
-            out_ch = base_channel * mult
+            out_ch = int(base_channel * mult)
             for _ in range(num_res_blocks):
                 self.downblocks.append(ResBlock(
                     cur_ch, out_ch, time_embed_dim, dropout, cur_res in attention_resolutions))
@@ -215,7 +215,7 @@ class UNet(M.Module):
 
         self.upblocks = []
         for i, mult in reversed(list(enumerate(chanel_multiplier))):
-            out_ch = base_channel * mult
+            out_ch = int(base_channel * mult)
             for _ in range(num_res_blocks + 1):
                 self.upblocks.append(ResBlock(
                     channels.pop() + cur_ch, out_ch, time_embed_dim, dropout, cur_res in attention_resolutions
