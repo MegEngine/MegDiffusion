@@ -185,18 +185,19 @@ class AttnBlock(M.Module):
     def forward(self, x):
         B, C, H, W = x.shape
         h = self.group_norm(x)
-        q = self.proj_q(h)  # (B,C,H,W)
-        k = self.proj_k(h)  # (B,C,H,W)
-        v = self.proj_v(h)  # (B,C,H,W)
+        q = self.proj_q(h).reshape(B, C, H*W)
+        k = self.proj_k(h).reshape(B, C, H*W)
+        v = self.proj_v(h).reshape(B, C, H*W)
 
-        # einsum('b(hw)c,b(HW)c->b(hw)(HW)', q*, k*)
-        w = q.transpose(0, 2, 3, 1).reshape(B, H*W, C) @ k.reshape(B, C, H*W)
+        # einsum('b(hw)c,b(HW)c->b(hw)(HW)', q, k)
+        w = q.transpose(0, 2, 1) @ k
         w = w * (int(C)**(-0.5))
         w = F.softmax(w, axis=-1)
 
-        # einsum('b(hw)(HW),b(HW)c->b(hw)c', w, v*)
-        h = w @ v.transpose(0, 2, 3, 1).reshape(B, H*W, C)
-        h = h.reshape(B, H, W, C).transpose(0, 3, 1, 2)
+        # Orignial: einsum('b(hw)(HW),b(HW)c->b(hw)c', w, v)  this is tf tensor format bhwc
+        # Modified: einsum('bc(HW),b(hw)(HW)->bc(hw)', v, w)  megengine tensor format
+        h = (v @ w.transpose(0, 2, 1)).reshape(B, C, H, W)
+
         h = self.proj(h)
 
         return x + h
