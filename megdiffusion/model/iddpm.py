@@ -28,7 +28,6 @@ import megengine.functional as F
 import megengine.module as M
 import megengine.module.init as init
 
-
 class SiLU(M.Module):
     def forward(self, x):
         return x * F.sigmoid(x)
@@ -191,7 +190,7 @@ class ResBlock(TimestepBlock):
 
         if self.use_scale_shift_norm:
             out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
-            scale, shift = F.split(emb_out, 2, dim=1)
+            scale, shift = F.split(emb_out, 2, axis=1)
             h = out_norm(h) * (1 + scale) + shift
             h = out_rest(h)
         else:
@@ -225,9 +224,8 @@ class AttentionBlock(M.Module):
         b, c, *spatial = x.shape
         # MegEngine v1.9.1 ``GroupNorm`` only support NCHW input right now
         # So we do reshape after norm operation
-        x = self.norm(x)
+        qkv = self.qkv(self.norm(x).reshape(b, c, -1))
         x = x.reshape(b, c, -1)
-        qkv = self.qkv(x)
         qkv = qkv.reshape(b * self.num_heads, -1, qkv.shape[2])
         h = self.attention(qkv)
         h = h.reshape(b, -1, h.shape[-1])
@@ -334,7 +332,7 @@ class UNetModel(M.Module):
                         ch,
                         time_embed_dim,
                         dropout,
-                        out_channels=mult * model_channels,
+                        out_channels= mult * model_channels,
                         use_scale_shift_norm=use_scale_shift_norm,
                     )
                 ]
@@ -383,7 +381,7 @@ class UNetModel(M.Module):
                 ch = model_channels * mult
                 if ds in attention_resolutions:
                     layers.append(
-                        AttentionBlock(ch, num_heads=num_heads)
+                        AttentionBlock(ch, num_heads=num_heads_upsample)
                     )
                 if level and i == num_res_blocks:
                     layers.append(UpSample(ch, conv_resample))
@@ -424,12 +422,13 @@ class UNetModel(M.Module):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-
+        
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
 
         h = x.astype(self.inner_dtype)
+
         for module in self.input_blocks:
             h = module(h, emb)
             hs.append(h)
