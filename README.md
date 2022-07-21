@@ -72,6 +72,7 @@ The following open-sourced projects was referenced here:
 
 - [hojonathanho](https://github.com/hojonathanho)/[diffusion](https://github.com/hojonathanho/diffusion): The official Tensorflow implementation of DDPM.
 - [w86763777](https://github.com/w86763777)/[pytorch-ddpm](https://github.com/w86763777/pytorch-ddpm): Unofficial PyTorch implementation of Denoising Diffusion Probabilistic Models.
+- [openai](https://github.com/openai)/[improved-diffusion](https://github.com/openai/improved-diffusion): The official codebase for Improved Denoising Diffusion Probabilistic Models.
 
 Thanks to people including [@gaohuazuo](https://github.com/gaohuazuo), [@xxr3376](https://github.com/xxr3376), [@P2Oileen](https://github.com/P2Oileen) and other contributors for support in this project. The R&D platform and the resources required for the experiment are provided by [MEGVII](https://megvii.com/) Inc. The deep learning framework used in this project is [MegEngine](https://github.com/MegEngine/MegEngine) -- a magic weapon.
 
