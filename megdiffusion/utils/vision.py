@@ -5,7 +5,6 @@ import numpy as np
 
 def make_grid(inp: np.ndarray, nrow: int = 8, padding: int = 2, pad_value: float = 0.0):
     """Make a grid of images. Port from torchvision.utils.make_grid implementation."""
-
     # convert to (N, C, H, W) with 3 channels
     if inp.ndim == 2:  # single image H x W
         inp = np.expand_dims(inp, axis=0)
@@ -33,9 +32,13 @@ def make_grid(inp: np.ndarray, nrow: int = 8, padding: int = 2, pad_value: float
                 break
             grid[:,y * height + padding: (y+1) * height,  x * width + padding: (x+1) * width] = inp[k]
             k = k + 1
-    return grid
+    return grid.astype("uint8")
 
-def save_image(inp: np.ndarray, path):
-    cv2.imwrite(path, inp.transpose(1, 2, 0)) # CHW to HWC
+def save_image(inp: np.ndarray, path, order="bgr"):
+    assert order in ["rgb", "bgr"]
+    inp = inp.transpose(1, 2, 0) # CHW to HWC
+    if order == "rgb":
+        inp = cv2.cvtColor(inp, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(path, inp) 
 
 
