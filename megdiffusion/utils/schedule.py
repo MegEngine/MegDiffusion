@@ -1,17 +1,38 @@
 import math
 import numpy as np
 
-def linear_schedule(timesteps, start=0.0001, end=0.02):
-    return np.linspace(start, end, timesteps)
+def linear_schedule(timesteps, start=0.0001, end=0.02, range=1000):
+    """Linear schedule from Ho et al, extended to work for any number of diffusion steps."""
+    scale = range / timesteps
+    return np.linspace(scale * start, scale * end, timesteps, dtype=np.float64)
 
-def consine_schedule(timesteps, s=0.008):
+def consine_schedule(timesteps, max_beta=0.999):
+    """Proposed in Improved Denoising Diffusion Probabilistic Models"""
+    return _betas_for_alpha_bar(
+        timesteps,
+        lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2,
+        max_beta
+    )
+
+def _betas_for_alpha_bar(timesteps, alpha_bar, max_beta=0.999):
     """
-    cosine schedule
-    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
+    Create a beta schedule that discretizes the given ``alpha_t_bar`` function,
+    which defines the cumulative product of (1-beta) over time from t = [0,1].
+
+    Ported from: 
+    https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/gaussian_diffusion.py
+
+    Args:
+        timesteps: the number of betas to produce.
+        alpha_bar: a lambda that takes an argument t from 0 to 1 and
+            produces the cumulative product of (1-beta) up to that
+            part of the diffusion process.
+        max_beta: the maximum beta to use; use values lower than 1 to
+            prevent singularities.
     """
-    steps = timesteps + 1
-    x = np.linspace(0, timesteps, steps, dtype=np.float64)
-    alphas_cumprod = np.cos(((x / timesteps) + s) / (1 + s) * math.pi * 0.5) ** 2
-    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-    return np.clip(betas, 0, 0.999)
+    betas = []
+    for i in range(timesteps):
+        t1 = i / timesteps
+        t2 = (i + 1) / timesteps
+        betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+    return np.array(betas, dtype=np.float64)
