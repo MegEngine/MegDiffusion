@@ -1,5 +1,6 @@
 import os
 import copy
+from sqlite3 import Time
 
 import tqdm
 from absl import app, flags
@@ -12,12 +13,12 @@ import megengine.optimizer as optim
 import megengine.autodiff as autodiff
 from megengine import Tensor
 
-from ..data import build_dataloader
-from ..model.ddpm import UNet
-from ..diffusion import GaussionDiffusion
-from ..utils.transform import linear_scale, linear_scale_rev
-from ..utils.ema import ema
-from ..utils.vision import make_grid, save_image
+from ...data import build_dataloader
+from ...model.ddpm import UNet
+from ...diffusion import GaussionDiffusion
+from ...utils.transform import linear_scale, linear_scale_rev
+from ...model.ema import ema
+from ...utils.vision import make_grid, save_image
 
 FLAGS = flags.FLAGS
 # dataset
@@ -61,9 +62,18 @@ def train():
     train_dataloader = build_dataloader(FLAGS.dataset, FLAGS.dataset_dir, FLAGS.batch_size)
     train_queue = iter(train_dataloader)
 
-    model = UNet(FLAGS.timesteps, FLAGS.img_resolution, FLAGS.img_channels, FLAGS.img_channels,
-        FLAGS.base_channel, FLAGS.channel_multiplier, FLAGS.attention_resolutions,
-        FLAGS.num_res_blocks, FLAGS.dropout)
+    # model setup
+    model = UNet(
+        total_timesteps = FLAGS.timesteps, 
+        in_resolution = FLAGS.img_resolution, 
+        in_channel = FLAGS.img_channels,
+        out_channel = FLAGS.img_channels,
+        base_channel = FLAGS.base_channel, 
+        channel_multiplier = FLAGS.channel_multiplier, 
+        attention_resolutions = FLAGS.attention_resolutions,
+        num_res_blocks = FLAGS.num_res_blocks, 
+        dropout = FLAGS.dropout,
+    )
     ema_model = copy.deepcopy(model)
 
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.lr)
@@ -88,7 +98,10 @@ def train():
         gm.attach(model.parameters())
     
     # diffusion setup
-    diffusion = GaussionDiffusion(FLAGS.timesteps, model)
+    diffusion = GaussionDiffusion(
+        timesteps = FLAGS.timesteps, 
+        model= model,
+    )
 
     # logging pre-processing
     if num_worker == 1 or rank == 0:

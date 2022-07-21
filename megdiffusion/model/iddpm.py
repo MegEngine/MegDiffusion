@@ -18,6 +18,10 @@ We only consider using 2-d feature data when reproduce the experiment in the ori
 In official Pytorch implementation, use ``checkpoint`` for reduced memory, not apllied here:
 
 https://github.com/openai/improved-diffusion/blob/mastetr/improved_diffusion/nn.py#L124
+
+.. _fp16_type_convert:
+
+Datatype convert between fp32 and fp16 are used for mixed precision training, not applied here.
 """
 
 from abc import abstractmethod
@@ -25,6 +29,7 @@ from abc import abstractmethod
 import math
 
 import megengine.functional as F
+import megengine.hub as hub
 import megengine.module as M
 import megengine.module.init as init
 
@@ -183,7 +188,7 @@ class ResBlock(TimestepBlock):
 
     def forward(self, x, emb):
         h = self.in_layers(x)
-        emb_out = self.emb_layers(emb).astype(h.dtype)
+        emb_out = self.emb_layers(emb)
 
         while len(emb_out.shape) < len(h.shape):
             emb_out = emb_out[..., None]
@@ -250,7 +255,7 @@ class QKVAttention(M.Module):
         q, k, v = F.split(qkv, 3, axis=1)   # Note: different with torch.split
         scale = 1 / math.sqrt(math.sqrt(ch))
         weight = (q.transpose(0, 2, 1) * scale) @ (k * scale)  # einsum("bct,bcs->bts", q * scale, k * scale)
-        weight = F.nn.softmax(weight.astype("float32"), axis=-1).astype(weight.dtype)
+        weight = F.nn.softmax(weight, axis=-1)
         return (v @ weight.transpose(0, 2, 1))  # einsum("bts,bcs->bct", weight, v)
 
 
@@ -262,17 +267,19 @@ class UNetModel(M.Module):
         model_channels: base channel count for the model.
         out_channels: channels in the output Tensor.
         num_res_blocks: number of residual blocks per downsample.
-        attention_resolutions: a collection of downsample rates at which
-            attention will take place. May be a set, list, or tuple.
-            For example, if this contains 4, then at 4x downsampling, attention
-            will be used.
+        attention_level: a collection of levels at which attention will take place.
         dropout: the dropout probability.
         channel_mult: channel multiplier for each level of the UNet.
-        conv_resample: if True, use learned convolutions for upsampling and
-            downsampling.
+        conv_resample: if True, use learned convolutions for upsampling and downsampling.
         num_classes: if specified (as an int), then this model will be
             class-conditional with `num_classes` classes.
         num_heads: the number of attention heads in each attention layer.
+    
+    Note:
+
+        In original paper the argument ``attention_level`` is still named ``attension_resolution``
+        like what DDPM code does. But there is ambiguity between the name and the actual purpose.
+        So we rename it to ``attention_level`` making the description more accurate.
     """
     
     def __init__(
@@ -281,7 +288,7 @@ class UNetModel(M.Module):
         model_channels,
         out_channels,
         num_res_blocks,
-        attention_resolutions,
+        attention_level,
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
@@ -298,7 +305,7 @@ class UNetModel(M.Module):
         self.model_channels = model_channels
         self.out_channels = out_channels
         self.num_res_blocks = num_res_blocks
-        self.attention_resolutions = attention_resolutions
+        self.attention_level = attention_level
         self.dropout = dropout
         self.channel_mult = channel_mult
         self.conv_resample = conv_resample
@@ -337,7 +344,7 @@ class UNetModel(M.Module):
                     )
                 ]
                 ch = mult * model_channels
-                if ds in attention_resolutions:
+                if ds in attention_level:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads)
                     )
@@ -379,7 +386,7 @@ class UNetModel(M.Module):
                     )
                 ]
                 ch = model_channels * mult
-                if ds in attention_resolutions:
+                if ds in attention_level:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads_upsample)
                     )
@@ -397,12 +404,6 @@ class UNetModel(M.Module):
         # zero module
         for p in self.out[-1].parameters():
             init.zeros_(p)
-
-    @property
-    def inner_dtype(self):
-        """Get the dtype used by the torso of the model.
-        """
-        return next(self.input_blocks[0].parameters()).dtype
 
     def forward(self, x, timesteps, y=None):
         """Apply the model to an input batch.
@@ -427,8 +428,7 @@ class UNetModel(M.Module):
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
 
-        h = x.astype(self.inner_dtype)
-
+        h = x
         for module in self.input_blocks:
             h = module(h, emb)
             hs.append(h)
@@ -436,6 +436,30 @@ class UNetModel(M.Module):
         for module in self.output_blocks:
             cat_in = F.concat([h, hs.pop()], axis=1)
             h = module(cat_in, emb)
-        h = h.astype(x.dtype)
         return self.out(h)
 
+
+@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/iddpm_cifar10_uncond_50M_500K_converted.pkl")
+def iddpm_cifar10_uncond_50M_500K_converted(**kwargs):
+    """The deault model configuration used in IDDPM paper on CIFAR10 dataset.
+    Unconditional CIFAR-10 with our ``L_hybrid`` objective and cosine noise schedule
+    Ported from: https://openaipublic.blob.core.windows.net/diffusion/march-2021/cifar10_uncond_50M_500K.pt
+
+    Note:
+
+        * MODEL_FLAGS="--image_size 32 --num_channels 128 --num_res_blocks 3 --learn_sigma True --dropout 0.3"
+        * DIFFUSION_FLAGS="--diffusion_steps 4000 --noise_schedule cosine"
+        * TRAIN_FLAGS="--lr 1e-4 --batch_size 128"
+
+    """
+    return UNetModel(
+        in_channels=3,
+        out_channels=6,
+        model_channels=128,
+        channel_mult=(1, 2, 2, 2),
+        num_res_blocks=3,
+        attention_level=(2,4),
+        dropout=0.3,
+        use_scale_shift_norm=True,
+        num_heads=4,
+    )

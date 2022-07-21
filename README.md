@@ -25,10 +25,10 @@ model = ddpm_cifar10_ema(pretrained=True)
 model.eval()
 ```
 
-The inference [script](megdiffusion/scripts/inference.py) shows how to generate 64 CIFAR10-like images and make a grid of them:
+The sample [script](megdiffusion/pipeline/ddpm/sample.py) shows how to generate 64 CIFAR10-like images and make a grid of them:
 
 ```shell
-python3 -m megdiffusion.scripts.inference
+python3 -m megdiffusion.pipeline.ddpm.sample
 ```
 
 ### Train from scratch
@@ -36,22 +36,22 @@ python3 -m megdiffusion.scripts.inference
 - Take DDPM CIFAR10 for example:
 
   ```shell
-  python3 -m megdiffusion.scripts.train \
-      --flagfile ./megdiffusion/config/ddpm-cifar10.txt
+  python3 -m megdiffusion.pipeline.ddpm.train \
+      --flagfile ./config/ddpm/cifar10.txt
   ```
 
 - [Optional] Overwrite arguments:
 
    ```shell
-   python3 -m megdiffusion.scripts.train \
-      --flagfile ./megdiffusion/config/ddpm-cifar10.txt \
+   python3 -m megdiffusion.pipeline.ddpm.train \
+      --flagfile ./config/ddpm/cifar10.txt \
       --logdir ./path/to/logdir \
       --batch_size=64 \
       --save_step=100000 \
       --parallel --resume
    ```
 
-See `python3 -m megdiffusion.scripts.train --help` for more information.
+See `python3 -m megdiffusion.pipeline.ddpm --help` for more information.
 
 Known issues:
 - Training with single GPU & using gradient clipping will cause error in MegEngine 1.9.x version.
@@ -85,5 +85,16 @@ Thanks to people including [@gaohuazuo](https://github.com/gaohuazuo), [@xxr3376
     eprint  = {2006.11239},
     archivePrefix = {arXiv},
     primaryClass = {cs.LG}
+}
+```
+
+```
+@article{DBLP,
+  title     = {Improved Denoising Diffusion Probabilistic Models},
+  author    = {Alex Nichol and Prafulla Dhariwal},
+  year      = {2021},
+  url       = {https://arxiv.org/abs/2102.09672},
+  eprinttype = {arXiv},
+  eprint    = {2102.09672},
 }
 ```

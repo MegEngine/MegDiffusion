@@ -3,7 +3,7 @@ import pytest
 import megengine.module as M
 
 from megengine import Parameter
-from megdiffusion.utils.ema import ema
+from megdiffusion.model.ema import ema
 
 class SourceModel(M.Module):
     def __init__(self):

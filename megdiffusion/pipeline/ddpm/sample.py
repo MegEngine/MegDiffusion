@@ -4,16 +4,16 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ..model import ddpm_cifar10, ddpm_cifar10_ema
-from ..model.ddpm import UNet
-from ..diffusion import GaussionDiffusion
-from ..utils.transform import linear_scale_rev
-from ..utils.vision import make_grid, save_image
+from ...model import ddpm_cifar10, ddpm_cifar10_ema
+from ...model.ddpm import UNet
+from ...diffusion import GaussionDiffusion
+from ...utils.transform import linear_scale_rev
+from ...utils.vision import make_grid, save_image
 
 FLAGS = flags.FLAGS
 # input (checkpoint) and ouput
 flags.DEFINE_string("logdir", "./logs/DDPM_CIFAR10_EPS", help="log directory")
-flags.DEFINE_string("outputdir", "./output", help="log directory")
+flags.DEFINE_string("output_dir", "./output", help="log directory")
 flags.DEFINE_boolean("ema", True, help="load ema model")
 flags.DEFINE_boolean("pretrain", True, help="use pre-trained model")
 flags.DEFINE_boolean("grid", True, help="make grid of the batch image")
@@ -35,19 +35,30 @@ def infer():
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
         checkpoint = mge.load(os.path.join(FLAGS.logdir, "checkpoints", "ckpt.pkl"))
-        model = UNet(FLAGS.timesteps, FLAGS.img_resolution, FLAGS.img_channels, FLAGS.img_channels,
-            FLAGS.base_channel, FLAGS.channel_multiplier, FLAGS.attention_resolutions,
-            FLAGS.num_res_blocks, FLAGS.dropout)
+        model = UNet(
+            total_timesteps = FLAGS.timesteps, 
+            in_resolution = FLAGS.img_resolution, 
+            in_channel = FLAGS.img_channels,
+            out_channel = FLAGS.img_channels,
+            base_channel = FLAGS.base_channel, 
+            channel_multiplier = FLAGS.channel_multiplier, 
+            attention_resolutions = FLAGS.attention_resolutions,
+            num_res_blocks = FLAGS.num_res_blocks, 
+            dropout = FLAGS.dropout,
+        )
         model.load_state_dict(checkpoint["ema_model" if FLAGS.ema else "model"])
 
     model.eval()
 
     # diffusion setup
-    diffusion = GaussionDiffusion(FLAGS.timesteps, model)
+    diffusion = GaussionDiffusion(
+        timesteps = FLAGS.timesteps, 
+        model = model,
+    )
 
     # sample
-    if not os.path.isdir(FLAGS.outputdir):
-        os.makedirs(os.path.join(FLAGS.outputdir))
+    if not os.path.isdir(FLAGS.output_dir):
+        os.makedirs(os.path.join(FLAGS.output_dir))
 
     generated_batch_image = diffusion.p_sample_loop((
         FLAGS.sample_size, FLAGS.img_channels,
@@ -58,10 +69,10 @@ def infer():
 
     if FLAGS.grid:
         generated_grid_image = make_grid(generated_batch_image)
-        save_image(generated_grid_image, os.path.join(FLAGS.outputdir, "sample.png"))
+        save_image(generated_grid_image, os.path.join(FLAGS.output_dir, "sample.png"))
     else:  # save each image
         for idx, image in enumerate(generated_batch_image):
-            save_image(image, os.path.join(FLAGS.outputdir, f"{idx}.png"))
+            save_image(image, os.path.join(FLAGS.output_dir, f"{idx}.png"))
 
 def main(argv):
     infer()
