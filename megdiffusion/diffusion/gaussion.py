@@ -57,15 +57,17 @@ class GaussionDiffusion:
 
         # define alphas and alphas_cumprod
         alphas = 1. - betas
-        alphas_cumprod = np.cumprod(alphas, axis=0)
-        alphas_cumprod_prev = np.append(1., alphas_cumprod[:-1])
-        alphas_cumprod_next = np.append(alphas_cumprod[1:], 0.)
+        alphas_cumprod = np.cumprod(alphas, axis=0)  # 1 > alphas_cumprod > 0
+        alphas_cumprod_prev = np.append(1., alphas_cumprod[:-1])  # alphas_cumprod_{t-1}
+        alphas_cumprod_next = np.append(alphas_cumprod[1:], 0.)   # alphas_cumprod_{t+1}
         sqrt_recip_alphas = np.sqrt(1. / alphas)
 
-        # calculations for diffusion q(x_t | x_{t-1}) and others
+        # calculations for diffusion q(x_t | x_0), see :meth:`q_sample`
         sqrt_alphas_cumprod = np.sqrt(alphas_cumprod)
         sqrt_one_minus_alphas_cumprod = np.sqrt(1. - alphas_cumprod)
         log_one_minus_alphas_cumprod = np.log(1. - alphas_cumprod)
+
+        # calculations for predicting x_0 with given x_t and model predicted noise
         sqrt_recip_alphas_cumprod = np.sqrt(1. / alphas_cumprod)
         sqrt_recipm1_alphas_cumprod = np.sqrt(1. / alphas_cumprod - 1)
 
@@ -73,9 +75,7 @@ class GaussionDiffusion:
         posterior_variance = (
             betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
         )
-        # log calculation clipped because the posterior variance is 0 at the
-        # beginning of the diffusion chain.
-        posterior_log_variance_clipped = np.log(
+        log_posterior_variance = np.log(  # posterior variance is 0 at beginning
             np.append(posterior_variance[1], posterior_variance[1:])
         )
         posterior_mean_coef1 = (
@@ -85,7 +85,10 @@ class GaussionDiffusion:
             (1. - alphas_cumprod_prev) * np.sqrt(alphas) /
             (1. - alphas_cumprod)
         )
-        frac_coef1_coef2 = posterior_mean_coef1 / posterior_mean_coef2
+
+        # calculations for posterior q(x_{0} | x_t, x_{t-1})
+        frac_coef1_coef2 = (posterior_mean_coef1 /  # to avoid dividing zero
+            np.append(posterior_mean_coef2[1], posterior_mean_coef2[1:]))
 
         def host2device(data):
             return mge.Tensor(data, dtype="float32")
@@ -103,7 +106,7 @@ class GaussionDiffusion:
         self.sqrt_recip_alphas_cumprod = host2device(sqrt_recip_alphas_cumprod)
         self.sqrt_recipm1_alphas_cumprod = host2device(sqrt_recipm1_alphas_cumprod)
         self.posterior_variance = host2device(posterior_variance)
-        self.posterior_log_variance_clipped = host2device(posterior_log_variance_clipped)
+        self.log_posterior_variance = host2device(log_posterior_variance)
         self.posterior_mean_coef1 = host2device(posterior_mean_coef1)
         self.posterior_mean_coef2 = host2device(posterior_mean_coef2)
         self.frac_coef1_coef2 = host2device(frac_coef1_coef2)
@@ -132,10 +135,10 @@ class GaussionDiffusion:
 
         # handle with model_output according to the variance type (fixed or learned)
         if self.model_var_type == "FIXED_SMALL":
-            model_log_var = batch_broadcast(self.posterior_log_variance_clipped[t], shape)
+            model_log_var = batch_broadcast(self.log_posterior_variance[t], shape)
         elif self.model_var_type == "FIXED_LARGE":
             model_log_var = batch_broadcast(
-                F.concat((self.posterior_log_variance_clipped[1], self.betas[1:]), axis=1),
+                F.concat((self.log_posterior_variance[1], self.betas[1:]), axis=1),
                 shape,
             )
         else:  # model's output contains learned variance value (the 2nd 3 channels)
@@ -143,9 +146,9 @@ class GaussionDiffusion:
             if self.model_var_type == "LEARNED":  # learned variance directly
                 model_log_var = model_var_values
             elif self.model_var_type == "LEARNED_RANGE":  # IDDPM Eq. (15)
-                min_log = batch_broadcast(self.posterior_log_variance_clipped[t], shape)
+                min_log = batch_broadcast(self.log_posterior_variance[t], shape)
                 max_log = batch_broadcast(F.log(self.betas[t]), shape)
-                # The model_var_values is [-1, 1] and should convert to [0, 1].
+                # The model_var_values is [-1, 1] and should convert to [0, 1] as coff.
                 frac = (model_var_values + 1) / 2
                 model_log_var = frac * max_log + (1 - frac) * min_log
 
