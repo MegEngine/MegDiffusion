@@ -138,8 +138,8 @@ class GaussionDiffusion:
             model_log_var = batch_broadcast(self.log_posterior_variance[t], shape)
         elif self.model_var_type == "FIXED_LARGE":
             model_log_var = batch_broadcast(
-                F.concat((self.log_posterior_variance[1], self.betas[1:]), axis=1),
-                shape,
+                F.concat((self.log_posterior_variance[1], F.log(self.betas[1:])), axis=1),
+                shape,  # set the initial (log-)variance to get a better decoder log likelihood.
             )
         else:  # model's output contains learned variance value (the 2nd 3 channels)
             model_output, model_var_values = F.split(model_output, 2, axis=1)
