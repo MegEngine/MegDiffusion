@@ -136,7 +136,7 @@ def train():
                 loss = diffusion.p_loss(image)
                 gm.backward(loss)
 
-            optim.clip_grad_norm(model.parameters(), FLAGS.grad_clip)
+            # optim.clip_grad_norm(model.parameters(), FLAGS.grad_clip)
             optimizer.step().clear_grad()
             ema(model, ema_model, FLAGS.ema_decay)
 
@@ -145,8 +145,8 @@ def train():
 
             if num_worker == 1 or rank == 0:
                 # add log information
-                writer.add_scalar("loss", loss.item(), step)
-                pbar.set_postfix(loss="%.3f" % loss.item())
+                writer.add_scalar("loss", loss.mean().item(), step)
+                pbar.set_postfix(loss="%.3f" % loss.mean().item())
 
                 # sample from generated images for comparing
                 # TODO: Support distributed sampling
