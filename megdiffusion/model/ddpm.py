@@ -56,6 +56,10 @@ class Swish(M.Module):  # nonlinearity
     def forward(self, x):
         return F.sigmoid(x) * x
 
+class GroupNorm(M.GroupNorm):
+    def __init__(self, num_groups, num_channels):
+        super().__init__(num_groups, num_channels, eps=1e-6)  # The default initial value in Tensorflow
+
 class TimeEmbedding(M.Module):
     """Sinusoidal Positional Embedding with given timestep ``t`` information.
 
@@ -169,7 +173,7 @@ class AttnBlock(M.Module):
 
     def __init__(self, in_ch):
         super().__init__()
-        self.group_norm = M.GroupNorm(32, in_ch)
+        self.group_norm = GroupNorm(32, in_ch)
         self.proj_q = M.Conv2d(in_ch, in_ch, 1, stride=1)
         self.proj_k = M.Conv2d(in_ch, in_ch, 1, stride=1)
         self.proj_v = M.Conv2d(in_ch, in_ch, 1, stride=1)
@@ -235,7 +239,7 @@ class ResBlock(M.Module):
                  ):
         super().__init__()
         self.block1 = M.Sequential(
-            M.GroupNorm(32, in_channel),
+            GroupNorm(32, in_channel),
             Swish(),
             M.Conv2d(in_channel, out_channel, 3, stride=1, padding=1),
         )
@@ -244,7 +248,7 @@ class ResBlock(M.Module):
             M.Linear(time_embed_dim, out_channel),
         )
         self.block2 = M.Sequential(
-            M.GroupNorm(32, out_channel),
+            GroupNorm(32, out_channel),
             Swish(),
             M.Dropout(dropout),
             M.Conv2d(out_channel, out_channel, 3, stride=1, padding=1)
@@ -377,7 +381,7 @@ class UNet(M.Module):
         assert len(channels) == 0
 
         self.tail = M.Sequential(
-            M.GroupNorm(32, cur_ch),
+            GroupNorm(32, cur_ch),
             Swish(),
             M.Conv2d(cur_ch, out_channel, 3, stride=1, padding=1)
         )
