@@ -23,6 +23,9 @@ def normal_kl(mean1: Tensor, logvar1: Tensor, mean2: Tensor, logvar2: Tensor):
 
 def discretized_gaussian_log_likelihood(x: Tensor, *, means: Tensor, log_scales: Tensor):
     """Compute the log-likelihood of a Gaussian distribution discretizing to a given image.
+    Assumes data is integers [0, 255] rescaled to [-1, 1].
+
+    Ported from https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0706c543/diffusion_tf/utils.py#L116
 
     Args:
         x: the target images. It is assumed that this was uint8 values, rescaled to the range [-1, 1].
@@ -48,15 +51,16 @@ def discretized_gaussian_log_likelihood(x: Tensor, *, means: Tensor, log_scales:
     min_in = inv_stdv * (centered_x - 1.0 / 255.0)
     cdf_min = _approx_standard_normal_cdf(min_in)
 
-    log_cdf_plus = F.log(F.clip(cdf_plus, lower=1e-12))
-    log_one_minus_cdf_min = F.log(F.clip((1.0 - cdf_min), lower=1e-12))
-
+    log_cdf_plus = F.log(F.maximum(cdf_plus, 1e-12))
+    log_one_minus_cdf_min = F.log(F.maximum((1.0 - cdf_min), 1e-12))
     cdf_delta = cdf_plus - cdf_min
 
     log_probs = F.where(
         x < -0.999,
         log_cdf_plus,
-        F.where(x > 0.999, log_one_minus_cdf_min, F.log(F.clip(cdf_delta), lower=1e-12)),
+        F.where(x > 0.999, 
+                log_one_minus_cdf_min, 
+                F.log(F.maximum(cdf_delta),1e-12)),
     )
     assert log_probs.shape == x.shape
     return log_probs
