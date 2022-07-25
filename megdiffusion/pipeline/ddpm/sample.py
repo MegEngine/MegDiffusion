@@ -4,7 +4,7 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ...model import ddpm_cifar10, ddpm_cifar10_ema
+from ...model.pretrain import ddpm_cifar10_converted, ddpm_cifar10_ema_converted
 from ...model.ddpm import UNet
 from ...diffusion import GaussionDiffusion
 from ...utils.transform import linear_scale_rev
@@ -31,7 +31,7 @@ flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
 def infer():
     # model setup
     if FLAGS.pretrain:
-        model = ddpm_cifar10_ema(pretrained=True) if FLAGS.ema else ddpm_cifar10(pretrained=True)
+        model = ddpm_cifar10_ema_converted(pretrained=True) if FLAGS.ema else ddpm_cifar10_converted(pretrained=True)
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
         checkpoint = mge.load(os.path.join(FLAGS.logdir, "checkpoints", "ckpt.pkl"))
@@ -69,10 +69,10 @@ def infer():
 
     if FLAGS.grid:
         generated_grid_image = make_grid(generated_batch_image)
-        save_image(generated_grid_image, os.path.join(FLAGS.output_dir, "sample.png"))
+        save_image(generated_grid_image, os.path.join(FLAGS.output_dir, "sample.png"), order="rgb")
     else:  # save each image
         for idx, image in enumerate(generated_batch_image):
-            save_image(image, os.path.join(FLAGS.output_dir, f"{idx}.png"))
+            save_image(image, os.path.join(FLAGS.output_dir, f"{idx}.png"), order="rgb")
 
 def main(argv):
     infer()

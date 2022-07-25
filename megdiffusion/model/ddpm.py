@@ -38,7 +38,6 @@ from typing import List, Sequence
 import math
 
 import megengine.functional as F
-import megengine.hub as hub
 import megengine.module as M
 import megengine.module.init as init
 
@@ -120,8 +119,10 @@ class DownSample(M.Module):
 
     def __init__(self, in_ch, with_conv=True):
         super().__init__()
+        self.with_conv = with_conv
+
         if with_conv:
-            self.main = M.Conv2d(in_ch, in_ch, 3, stride=2, padding=1)
+            self.main = M.Conv2d(in_ch, in_ch, 3, stride=2)  # Note not padding here
         else:
             self.main = M.AvgPool2d(2, stride=2)
 
@@ -132,8 +133,13 @@ class DownSample(M.Module):
                 init.zeros_(module.bias)
 
     def forward(self, x, temb):  # add unused temb param here just for convince
+        if self.with_conv:
+            """In Tensorflow design, Conv2d's padding behavior is different.
+            So we need do explicit padding here instead of giving Conv2d `padding` param.
+            See https://www.tensorflow.org/api_docs/python/tf/nn#notes_on_padding_
+            """
+            x = F.nn.pad(x, [*[(0, 0) for i in range(x.ndim - 2)], (0, 1), (0, 1)])
         return self.main(x)
-
 
 class UpSample(M.Module):
     """An upsampling layer with an optional convolution.
@@ -421,35 +427,3 @@ class UNet(M.Module):
 
         assert not concat_list
         return h
-
-
-@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10.pkl")
-def ddpm_cifar10(**kwargs):
-    """The deault model configuration used in DDPM paper on CIFAR10 dataset."""
-    return UNet(
-        total_timesteps=1000,
-        in_resolution=32,
-        in_channel=3,
-        out_channel=3,
-        base_channel=128,
-        channel_multiplier=[1, 2, 2, 2],
-        attention_resolutions=[16],
-        num_res_blocks=2,
-        dropout=0.1,
-    )
-
-
-@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10_ema.pkl")
-def ddpm_cifar10_ema(**kwargs):
-    """The deault model configuration used in DDPM paper on CIFAR10 dataset (with EMA)."""
-    return UNet(
-        total_timesteps=1000,
-        in_resolution=32,
-        in_channel=3,
-        out_channel=3,
-        base_channel=128,
-        channel_multiplier=[1, 2, 2, 2],
-        attention_resolutions=[16],
-        num_res_blocks=2,
-        dropout=0.1,
-    )

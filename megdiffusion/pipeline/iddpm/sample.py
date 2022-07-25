@@ -5,7 +5,7 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ...model import iddpm_cifar10_uncond_50M_500K_converted
+from ...model.pretrain import iddpm_cifar10_uncond_50M_500K_converted
 from ...model.iddpm import UNetModel
 from ...diffusion import GaussionDiffusion
 from ...utils.transform import linear_scale_rev
