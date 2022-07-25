@@ -12,16 +12,16 @@ Now users can use `megengine.hub` to get pre-trained models directly:
 ```python
 import megengine
 megengine.hub.list("MegEngine/MegDiffusion:main")
-megengine.hub.help("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema")
-model = megengine.hub.load("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema", pretrained=True)
+megengine.hub.help("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema_converted")
+model = megengine.hub.load("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema_converted", pretrained=True)
 model.eval()
 ```
 
 Or if you have downloaded or installed MegDiffusion, you can get pre-trained models from `model` module.
 
 ```python
-from megdiffusion.model import ddpm_cifar10_ema
-model = ddpm_cifar10_ema(pretrained=True)
+from megdiffusion.model import pretrain
+model =  pretrain.ddpm_cifar10_ema(pretrained=True)
 model.eval()
 ```
 

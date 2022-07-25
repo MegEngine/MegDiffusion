@@ -4,7 +4,7 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ...model.pretrain import ddpm_cifar10_converted, ddpm_cifar10_ema_converted
+from ...model import pretrain
 from ...model.ddpm import UNet
 from ...diffusion import GaussionDiffusion
 from ...utils.transform import linear_scale_rev
@@ -23,7 +23,7 @@ flags.DEFINE_integer("sample_size", 64, "sampling size of images")
 # model architecture
 flags.DEFINE_integer("timesteps", 1000, help="total diffusion steps")
 flags.DEFINE_integer("base_channel", 128, help="base channel of UNet")
-flags.DEFINE_multi_integer("channel_multiplier", [1, 2, 2, 2], help="channel multiplier")
+flags.DEFINE_multi_float("channel_multiplier", [1, 2, 2, 2], help="channel multiplier")
 flags.DEFINE_multi_integer("attention_resolutions", [16], help="resolutions use attension block")
 flags.DEFINE_integer("num_res_blocks", 2, help="number of resblock in each downblock")
 flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
@@ -31,7 +31,10 @@ flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
 def infer():
     # model setup
     if FLAGS.pretrain:
-        model = ddpm_cifar10_ema_converted(pretrained=True) if FLAGS.ema else ddpm_cifar10_converted(pretrained=True)
+        if FLAGS.ema:
+            model = pretrain.ddpm_lsun_cat_converted(pretrained=True)
+        else:
+            model = pretrain.ddpm_cifar10_converted(pretrained=True)
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
         checkpoint = mge.load(os.path.join(FLAGS.logdir, "checkpoints", "ckpt.pkl"))
