@@ -32,7 +32,7 @@ def infer():
     # model setup
     if FLAGS.pretrain:
         if FLAGS.ema:
-            model = pretrain.ddpm_lsun_cat_converted(pretrained=True)
+            model = pretrain.ddpm_cifar10_ema_converted(pretrained=True)
         else:
             model = pretrain.ddpm_cifar10_converted(pretrained=True)
     else:  # use model trained from scratch

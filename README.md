@@ -52,10 +52,6 @@ python3 -m megdiffusion.pipeline.ddpm.sample
    ```
 
 See `python3 -m megdiffusion.pipeline.ddpm --help` for more information.
-
-Known issues:
-- Training with single GPU & using gradient clipping will cause error in MegEngine 1.9.x version.
-
 ## Development
 
 ```shell

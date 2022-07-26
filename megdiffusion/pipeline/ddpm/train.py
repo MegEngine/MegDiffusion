@@ -135,7 +135,7 @@ def train():
                 loss = diffusion.p_loss(image)
                 gm.backward(loss)
 
-            # optim.clip_grad_norm(model.parameters(), FLAGS.grad_clip)
+            optim.clip_grad_norm(model.parameters(), FLAGS.grad_clip)
             optimizer.step().clear_grad()
             ema(model, ema_model, FLAGS.ema_decay)
 
