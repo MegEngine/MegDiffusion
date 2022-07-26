@@ -262,7 +262,7 @@ class GaussionDiffusion:
         if self.model_var_type in ["LEARNED", "LEARNED_RANGE"]:
             model_output = F.split(model_output, 2, axis=1)[0]
 
-        def _kl_loss(x_start, x_t, t):
+        def _vlb_loss(x_start, x_t, t):
             """calculate VLB bound bits per dimensions"""
             shape = x_t.shape
 
@@ -296,13 +296,12 @@ class GaussionDiffusion:
 
             return mean_flat((target - model_output) ** 2)
 
-        # TODO: Not finishd right now
         if self.loss_type == "VLB":
-            loss = _kl_loss(x_start, x_t, t)
+            loss = _vlb_loss(x_start, x_t, t)
         elif self.loss_type == "SIMPLE":
             loss = _mse_loss(x_start, x_t, t)
         elif self.loss_type == "HYBRID":
-            loss = _kl_loss(x_start, x_t, t) + _mse_loss(x_start, x_t, t)
+            loss = _vlb_loss(x_start, x_t, t) + _mse_loss(x_start, x_t, t)
         else:
             raise NotImplementedError(self.loss_type)
 

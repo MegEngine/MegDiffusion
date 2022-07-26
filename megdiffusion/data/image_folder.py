@@ -11,6 +11,6 @@ def build_imagefolder_dataloader(dataset_dir, batch_size):
     ])
 
     train_dataset = ImageFolder(root=dataset_dir)
-    train_sampler = Infinite(data.RandomSampler(train_dataset, batch_size))
+    train_sampler = Infinite(data.RandomSampler(train_dataset, batch_size, drop_last=True))
     train_dataloader = data.DataLoader(train_dataset, train_sampler, transform)
     return train_dataloader

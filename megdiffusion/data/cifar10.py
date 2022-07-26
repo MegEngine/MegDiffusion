@@ -11,6 +11,6 @@ def build_cifar10_dataloader(dataset_dir, batch_size):
     ])
 
     train_dataset = CIFAR10(root=dataset_dir, train=True)
-    train_sampler = Infinite(data.RandomSampler(train_dataset, batch_size))
+    train_sampler = Infinite(data.RandomSampler(train_dataset, batch_size, drop_last=True))
     train_dataloader = data.DataLoader(train_dataset, train_sampler, transform)
     return train_dataloader
