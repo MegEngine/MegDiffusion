@@ -17,6 +17,7 @@ converted = [
     "ddpm_lsun_cat_ema_converted",
     "ddpm_lsun_church_converted",
     "ddpm_lsun_church_ema_converted",
+    "ddpm_celebahq_256_converted",
 ]
 
 __all__ = retrained + converted
@@ -187,6 +188,22 @@ def ddpm_lsun_church_converted(**kwargs):
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_church_ema_converted.pkl")
 def ddpm_lsun_church_ema_converted(**kwargs):
     """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
+
+    
+    .. admonition:: Diffusion Schedule Configuration
+
+       * Total timesteps: 1000
+       * Beta schedule: linear
+       * Model mean type: EPSILON
+       * Model var type: FIXED_SMALL
+       * Channel order: RGB
+
+    """
+    return _ddpm_unet_default_config(resolution=256)
+
+@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_celebahq_256_converted.pkl")
+def ddpm_celebahq_256_converted(**kwargs):
+    """The pretrained DDPM model on CelebaHQ-256 dataset, which is converted from original checkpoint.
 
     
     .. admonition:: Diffusion Schedule Configuration
