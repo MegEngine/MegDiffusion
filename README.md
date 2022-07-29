@@ -11,17 +11,25 @@ Now users can use `megengine.hub` to get pre-trained models directly:
 
 ```python
 import megengine
-megengine.hub.list("MegEngine/MegDiffusion:main")
-megengine.hub.help("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema_converted")
-model = megengine.hub.load("MegEngine/MegDiffusion:main", "ddpm_cifar10_ema_converted", pretrained=True)
+
+repo_info = "MegEngine/MegDiffusion:main"
+megengine.hub.list(repo_info)
+
+preatrained_model = "ddpm_cifar10_ema_converted"
+megengine.hub.help(repo_info, preatrained_model)
+
+model = megengine.hub.load(repo_info, preatrained_model, pretrained=True)
 model.eval()
 ```
 
-Or if you have downloaded or installed MegDiffusion, you can get pre-trained models from `model` module.
+Note that using `megengine.hub` will download the whole repository from it's host or using cache.
+
+If you have downloaded or installed MegDiffusion, you can get pre-trained models from `pretrain` module.
 
 ```python
 from megdiffusion.model import pretrain
-model =  pretrain.ddpm_cifar10_ema(pretrained=True)
+
+model = pretrain.ddpm_cifar10_ema_converted(pretrained=True)
 model.eval()
 ```
 
@@ -37,21 +45,29 @@ python3 -m megdiffusion.pipeline.ddpm.sample
 
   ```shell
   python3 -m megdiffusion.pipeline.ddpm.train \
-      --flagfile ./config/ddpm/cifar10.txt
+      --config ./configs/ddpm/cifar10.yaml
   ```
 
 - [Optional] Overwrite arguments:
 
-   ```shell
-   python3 -m megdiffusion.pipeline.ddpm.train \
-      --flagfile ./config/ddpm/cifar10.txt \
-      --logdir ./path/to/logdir \
-      --batch_size=64 \
-      --save_step=100000 \
-      --parallel --resume
-   ```
+  ```shell
+  python3 -m megdiffusion.pipeline.ddpm.train \
+     --config ./configs/ddpm/cifar10.yaml \
+     --logdir ./path/to/logdir \
+     --parallel --resume
+  ```
 
-See `python3 -m megdiffusion.pipeline.ddpm --help` for more information.
+See `python3 -m megdiffusion.pipeline.ddpm.train --help` for more information.
+For other options like `batch_size`, we recommend modifying and backing up them in the yaml file.
+
+If you want to sample with model trained by yourself (not the pre-trained model):
+
+```shell
+python3 -m megdiffusion.pipeline.ddpm.sample --nopretrain \
+   --logdir ./path/to/logdir \
+   --config ./configs/ddpm/cifar10.yaml  # Coule be your customed file
+```
+
 ## Development
 
 ```shell
@@ -68,6 +84,7 @@ The following open-sourced projects was referenced here:
 
 - [hojonathanho](https://github.com/hojonathanho)/[diffusion](https://github.com/hojonathanho/diffusion): The official Tensorflow implementation of DDPM.
 - [w86763777](https://github.com/w86763777)/[pytorch-ddpm](https://github.com/w86763777/pytorch-ddpm): Unofficial PyTorch implementation of Denoising Diffusion Probabilistic Models.
+- [pesser](https://github.com/pesser)/[pytorch_diffusion](https://github.com/pesser/pytorch_diffusion): Unofficial PyTorch implementation of DDPM and provides converted torch checkpoints.
 - [openai](https://github.com/openai)/[improved-diffusion](https://github.com/openai/improved-diffusion): The official codebase for Improved Denoising Diffusion Probabilistic Models.
 
 Thanks to people including [@gaohuazuo](https://github.com/gaohuazuo), [@xxr3376](https://github.com/xxr3376), [@P2Oileen](https://github.com/P2Oileen) and other contributors for support in this project. The R&D platform and the resources required for the experiment are provided by [MEGVII](https://megvii.com/) Inc. The deep learning framework used in this project is [MegEngine](https://github.com/MegEngine/MegEngine) -- a magic weapon.
