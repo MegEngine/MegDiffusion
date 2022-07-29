@@ -40,179 +40,104 @@ def _ddpm_unet_default_config(resolution: int):
         dropout=0.1,
     )
 
+def _ddpm_diffusion_default_config():
+    return {
+        "beta_schedule" : {
+            "type": "linear",
+            "timesteps": 1000,
+            "start": 0.0001,
+            "end": 0.02
+        },
+        "model_mean_type": "EPSILON",
+        "model_var_type": "FIXED_SMALL",
+    }
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10.pkl")
 def ddpm_cifar10(**kwargs):
-    """The pretrained DDPM model on CIFAR10 dataset.
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule name: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: BGR
-
-    """
-    return _ddpm_unet_default_config(resolution=32)
+    """The pretrained DDPM model on CIFAR10 dataset."""
+    model = _ddpm_unet_default_config(resolution=32)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "BGR"
+    return model
 
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10_ema.pkl")
 def ddpm_cifar10_ema(**kwargs):
-    """The pretrained DDPM model on CIFAR10 dataset (with EMA).
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule name: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: BGR
-
-    """
-    return _ddpm_unet_default_config(resolution=32)
+    """The pretrained DDPM model on CIFAR10 dataset (with EMA)."""
+    model = _ddpm_unet_default_config(resolution=32)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "BGR"
+    return model
 
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10_converted.pkl")
 def ddpm_cifar10_converted(**kwargs):
-    """The pretrained DDPM model on CIFAR10 dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=32)
+    """The pretrained DDPM model on CIFAR10 dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=32)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_cifar10_ema_converted.pkl")
 def ddpm_cifar10_ema_converted(**kwargs):
-    """The pretrained DDPM model on CIFAR10 dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=32)
+    """The pretrained DDPM model on CIFAR10 dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=32)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_bedroom_converted.pkl")
 def ddpm_lsun_bedroom_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_bedroom_ema_converted.pkl")
 def ddpm_lsun_bedroom_ema_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_cat_converted.pkl")
 def ddpm_lsun_cat_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_cat_ema_converted.pkl")
 def ddpm_lsun_cat_ema_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_church_converted.pkl")
 def ddpm_lsun_church_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_lsun_church_ema_converted.pkl")
 def ddpm_lsun_church_ema_converted(**kwargs):
-    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on LSUN cat dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_celebahq_256_converted.pkl")
 def ddpm_celebahq_256_converted(**kwargs):
-    """The pretrained DDPM model on CelebaHQ-256 dataset, which is converted from original checkpoint.
-
-    
-    .. admonition:: Diffusion Schedule Configuration
-
-       * Total timesteps: 1000
-       * Beta schedule: linear
-       * Model mean type: EPSILON
-       * Model var type: FIXED_SMALL
-       * Channel order: RGB
-
-    """
-    return _ddpm_unet_default_config(resolution=256)
+    """The pretrained DDPM model on CelebaHQ-256 dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model

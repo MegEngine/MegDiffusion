@@ -6,7 +6,7 @@ def linear_schedule(timesteps, start=0.0001, end=0.02, range=1000):
     scale = range / timesteps
     return np.linspace(scale * start, scale * end, timesteps, dtype=np.float64)
 
-def consine_schedule(timesteps, max_beta=0.999):
+def cosine_schedule(timesteps, max_beta=0.999):
     """Proposed in Improved Denoising Diffusion Probabilistic Models"""
     return _betas_for_alpha_bar(
         timesteps,
@@ -41,7 +41,7 @@ def build_beta_schedule(type: str, timesteps: int, **kwargs):
 
     mapping = {
         "linear": linear_schedule,
-        "consine": consine_schedule,
+        "cosine": cosine_schedule,
     }
 
     beta_schedule = mapping[type.lower()]

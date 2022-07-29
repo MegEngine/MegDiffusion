@@ -34,8 +34,10 @@ def make_grid(inp: np.ndarray, nrow: int = 8, padding: int = 2, pad_value: float
             k = k + 1
     return grid.astype("uint8")
 
-def save_image(inp: np.ndarray, path, order="bgr"):
+def save_image(inp: np.ndarray, path, order: str = "bgr"):
+    order = order.lower()
     assert order in ["rgb", "bgr"]
+    
     inp = inp.transpose(1, 2, 0) # CHW to HWC
     if order == "rgb":
         inp = cv2.cvtColor(inp, cv2.COLOR_RGB2BGR)

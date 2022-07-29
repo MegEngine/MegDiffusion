@@ -81,8 +81,14 @@ def train():
         gm.attach(model.parameters())
     
     # diffusion setup
-    betas = build_beta_schedule(**config["diffusion"]["beta_schedule"])
-    diffusion = GaussionDiffusion(betas=betas, model=model)
+    diffusion_config = config["diffusion"]
+    diffusion = GaussionDiffusion(
+        model=model,
+        betas=build_beta_schedule(diffusion_config["beta_schedule"]),
+        model_mean_type=diffusion_config["model_mean_type"],
+        model_var_type=diffusion_config["model_var_type"],
+        loss_type=diffusion_config["loss_type"],
+    )
 
     # logging pre-processing
     if num_worker == 1 or rank == 0:

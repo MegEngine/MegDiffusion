@@ -1,5 +1,5 @@
 data:
-    dataset: "CelebAHQ_256"
+    dataset: "LSUN_Cat"
     image_size: 256
     img_resolution: 3
 

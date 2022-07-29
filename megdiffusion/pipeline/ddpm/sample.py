@@ -25,12 +25,11 @@ def infer():
     with open(FLAGS.config, "r") as file:
         config = yaml.safe_load(file)
 
-    dataset_name = config["data"]["dataset"].lower()
-    pretrained_model_type = ("ema_" if FLAGS.ema else "") + "converted"
-    pretrained_model_name = f"ddpm_{dataset_name}_{pretrained_model_type}"
-
     # model setup
     if FLAGS.pretrain:
+        dataset_name = config["data"]["dataset"].lower()
+        pretrained_model_type = ("ema_" if FLAGS.ema else "") + "converted"
+        pretrained_model_name = f"ddpm_{dataset_name}_{pretrained_model_type}"
         model = getattr(pretrain, pretrained_model_name)(pretrained=True)
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
@@ -41,8 +40,17 @@ def infer():
     model.eval()
 
     # diffusion setup
-    betas = build_beta_schedule(**config["diffusion"]["beta_schedule"])
-    diffusion = GaussionDiffusion(betas=betas, model=model)
+    if FLAGS.pretrain:
+        diffusion_config = model.diffusion_config
+    else:
+        diffusion_config = config["diffusion"]
+
+    diffusion = GaussionDiffusion(
+        model=model,
+        betas=build_beta_schedule(**diffusion_config["beta_schedule"]),
+        model_mean_type=diffusion_config["model_mean_type"],
+        model_var_type=diffusion_config["model_var_type"],
+    )
 
     # sample
     if not os.path.isdir(FLAGS.output_dir):
@@ -55,12 +63,17 @@ def infer():
     generated_batch_image = F.clip(generated_batch_image, -1, 1).numpy()
     generated_batch_image = linear_scale_rev(generated_batch_image)
 
+    if model.channel_order is not None:
+        channel_order = model.channel_order
+    else:
+        channel_order = "BGR"
+
     if FLAGS.grid:
         generated_grid_image = make_grid(generated_batch_image)
-        save_image(generated_grid_image, os.path.join(FLAGS.output_dir, "sample.png"), order="rgb")
+        save_image(generated_grid_image, os.path.join(FLAGS.output_dir, "sample.png"), order=channel_order)
     else:  # save each image
         for idx, image in enumerate(generated_batch_image):
-            save_image(image, os.path.join(FLAGS.output_dir, f"{idx}.png"), order="rgb")
+            save_image(image, os.path.join(FLAGS.output_dir, f"{idx}.png"), order=channel_order)
 
 def main(argv):
     infer()

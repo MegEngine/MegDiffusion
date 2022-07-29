@@ -21,6 +21,9 @@ diffusion:
       timesteps: 1000
       start: 0.0001
       end: 0.02
+    model_mean_type: "EPSILON"
+    model_val_type: "FIXED_SMALL"
+    loss_type: "SIMPLE"
     
 training:
     batch_size: 128
