@@ -36,3 +36,14 @@ def _betas_for_alpha_bar(timesteps, alpha_bar, max_beta=0.999):
         t2 = (i + 1) / timesteps
         betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
     return np.array(betas, dtype=np.float64)
+
+def build_beta_schedule(type: str, timesteps: int, **kwargs):
+
+    mapping = {
+        "linear": linear_schedule,
+        "consine": consine_schedule,
+    }
+
+    beta_schedule = mapping[type.lower()]
+
+    return beta_schedule(timesteps=timesteps, **kwargs)

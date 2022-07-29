@@ -23,7 +23,7 @@ class GaussionDiffusion:
     def __init__(
         self,
         *,
-        timesteps = 1000,
+        timesteps = None,
         betas = None,
         model = None, 
         model_mean_type = "EPSILON",
@@ -36,16 +36,17 @@ class GaussionDiffusion:
         assert model_var_type in ["FIXED_SMALL", "FIXED_LARGE", "LEARNED", "LEARNED_RANGE"]
         assert loss_type in ["SIMPLE", "VLB", "HYBRID"]
 
-        self.timesteps = timesteps
+        # define beta schedule
+        self.betas = linear_schedule(timesteps=1000) if betas is None else betas
+        self._pre_calculate(self.betas)
+
+        self.timesteps = len(self.betas) if timesteps is None else timesteps
         self.model = model
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
         self.loss_type = loss_type
         self.rescale_timesteps = rescale_timesteps
 
-        # define beta schedule
-        self.betas = linear_schedule(timesteps=1000) if betas is None else betas
-        self._pre_calculate(self.betas)
 
     def _pre_calculate(self, betas):
         """Pre-calculate constant values frequently used in formulas appears in paper.

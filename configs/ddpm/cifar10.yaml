@@ -1,0 +1,43 @@
+data:
+    dataset: "CIFAR10"
+    image_size: 32
+    img_resolution: 3
+
+model:
+    total_timesteps: 1000
+    in_resolution: 32
+    in_channel: 3
+    out_channel: 3
+    base_channel: 128
+    channel_multiplier: [1, 2, 2, 2]
+    attention_resolutions: [16,]
+    num_res_blocks: 2
+    dropout: 0.1
+    conv_resample: True
+
+diffusion:
+    beta_schedule:
+      type: linear
+      timesteps: 1000
+      start: 0.0001
+      end: 0.02
+    
+training:
+    batch_size: 128
+    n_iters: 800000
+    n_sample: 1000
+    n_snapshot: 5000
+    n_validate: 2000
+    ema: True
+    ema_decay: 0.9999
+
+optim:
+    optimizer: 
+      type: "Adam"
+      lr: 0.0002
+      weight_decay: 0
+    grad_clip: 1.0
+
+sampling:
+    batch_size: 64
+

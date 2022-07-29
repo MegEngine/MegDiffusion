@@ -2,6 +2,7 @@ import os
 import copy
 
 import tqdm
+import yaml
 from absl import app, flags
 from tensorboardX import SummaryWriter
 
@@ -13,41 +14,26 @@ import megengine.autodiff as autodiff
 from megengine import Tensor
 
 from ...data import build_dataloader
-from ...model.ddpm import UNet
+from ...optimizer import build_optimizer
 from ...diffusion import GaussionDiffusion
-from ...utils.transform import linear_scale, linear_scale_rev
+from ...diffusion.schedule import build_beta_schedule
+from ...model.ddpm import UNet
 from ...model.ema import ema
+from ...utils.transform import linear_scale, linear_scale_rev
 from ...utils.vision import make_grid, save_image
 
 FLAGS = flags.FLAGS
-# dataset
-flags.DEFINE_string("dataset", "cifar10", help="dataset used to train the model")
-flags.DEFINE_integer("img_channels", 3, help="num of channels of training example")
-flags.DEFINE_integer("img_resolution", 32, help="image size of training example")
+flags.DEFINE_string("config", "./configs/ddpm/cifar10.yaml", help="configuration file")
 flags.DEFINE_string("dataset_dir", "/data/datasets/CIFAR10", help="dataset path")
-flags.DEFINE_integer("batch_size", 128, help="batch size for batch data from trainning dataset")
-# model architecture
-flags.DEFINE_integer("timesteps", 1000, help="total diffusion steps")
-flags.DEFINE_integer("base_channel", 128, help="base channel of UNet")
-flags.DEFINE_multi_float("channel_multiplier", [1, 2, 2, 2], help="channel multiplier")
-flags.DEFINE_multi_integer("attention_resolutions", [16], help="resolutions use attension block")
-flags.DEFINE_integer("num_res_blocks", 2, help="number of resblock in each downblock")
-flags.DEFINE_float("dropout", 0.1, help="dropout rate of resblock")
-# training
+flags.DEFINE_string("logdir", "./logs/DDPM_CIFAR10_EPS", help="log directory")
 flags.DEFINE_bool("resume", False, help="resume training from saved checkpoint")
 flags.DEFINE_bool("parallel", False, help="multi gpu training")
 flags.DEFINE_bool("dtr", False, help="enable MegEngine DTR algorithm")
-flags.DEFINE_float("lr", 0.0002, help="learning rate of the optimizer")
-flags.DEFINE_float("grad_clip", 1., help="gradient norm clipping")
-flags.DEFINE_integer("total_steps", 800000, help="total training steps")
-flags.DEFINE_float("ema_decay", 0.9999, help="ema decay rate")
-# logging
-flags.DEFINE_string("logdir", "./logs/DDPM_CIFAR10_EPS", help="log directory")
-flags.DEFINE_integer("sample_size", 64, "sampling size of images")
-flags.DEFINE_integer("sample_step", 1000, help="frequency of sampling, 0 to disable during training")
-flags.DEFINE_integer("save_step", 5000, help="frequency of saving checkpoints")
 
 def train():
+
+    with open(FLAGS.config, "r") as file:
+        config = yaml.safe_load(file)
 
     if FLAGS.parallel:
         num_worker = dist.get_world_size()
@@ -58,24 +44,22 @@ def train():
     if FLAGS.dtr:
         mge.dtr.enable()
     
-    train_dataloader = build_dataloader(FLAGS.dataset, FLAGS.dataset_dir, FLAGS.batch_size)
+    # data setup
+    train_dataloader = build_dataloader(
+        dataset = config["data"]["dataset"],
+        dataset_dir = FLAGS.dataset_dir,
+        batch_size = config["training"]["batch_size"],
+    )
     train_queue = iter(train_dataloader)
 
     # model setup
-    model = UNet(
-        total_timesteps = FLAGS.timesteps, 
-        in_resolution = FLAGS.img_resolution, 
-        in_channel = FLAGS.img_channels,
-        out_channel = FLAGS.img_channels,
-        base_channel = FLAGS.base_channel, 
-        channel_multiplier = FLAGS.channel_multiplier, 
-        attention_resolutions = FLAGS.attention_resolutions,
-        num_res_blocks = FLAGS.num_res_blocks, 
-        dropout = FLAGS.dropout,
-    )
+    model = UNet(**config["model"])
     ema_model = copy.deepcopy(model)
 
-    optimizer = optim.Adam(model.parameters(), lr=FLAGS.lr)
+    optimizer = build_optimizer(
+        params = model.parameters(),
+        **config["optim"]["optimizer"],
+    )
     gm = autodiff.GradManager()
 
     sample_path = os.path.join(FLAGS.logdir, "samples")
@@ -97,10 +81,8 @@ def train():
         gm.attach(model.parameters())
     
     # diffusion setup
-    diffusion = GaussionDiffusion(
-        timesteps = FLAGS.timesteps, 
-        model= model,
-    )
+    betas = build_beta_schedule(**config["diffusion"]["beta_schedule"])
+    diffusion = GaussionDiffusion(betas=betas, model=model)
 
     # logging pre-processing
     if num_worker == 1 or rank == 0:
@@ -112,19 +94,22 @@ def train():
         writer = SummaryWriter(FLAGS.logdir)
 
         # sample from real images for comparing
-        real_batch_image = next(iter(train_dataloader))[0]
-        real_grid_image = make_grid(real_batch_image[:FLAGS.sample_size])
+
+        real_batch_image, _ = next(iter(train_dataloader))
+        real_grid_image = make_grid(real_batch_image)
         save_image(real_grid_image, os.path.join(sample_path, "real.png"))
         writer.add_image("real_image", real_grid_image)
         writer.flush()
 
-        # backup all arguments
-        with open(os.path.join(FLAGS.logdir, "flagfile.txt"), "w") as f:
-            f.write(FLAGS.flags_into_string())
-
     # train the model
+    total_steps = config["training"]["n_iters"]
+    sample_steps = config["training"]["n_sample"]
+    validate_steps = config["training"]["n_validate"]
+    save_steps = config["training"]["n_snapshot"]
+
+    worker_steps = total_steps // num_worker
     start_step = start_step // num_worker
-    worker_steps = FLAGS.total_steps // num_worker
+    
     with tqdm.trange(start_step, worker_steps, dynamic_ncols=True) as pbar:
         for worker_step in pbar:
             step = worker_step * num_worker
@@ -135,9 +120,11 @@ def train():
                 loss = diffusion.p_loss(image)
                 gm.backward(loss)
 
-            optim.clip_grad_norm(model.parameters(), FLAGS.grad_clip)
+            if config["optim"]["grad_clip"]:
+                optim.clip_grad_norm(model.parameters(), config["optim"]["grad_clip"])
+
             optimizer.step().clear_grad()
-            ema(model, ema_model, FLAGS.ema_decay)
+            ema(model, ema_model, config["training"]["ema_decay"])
 
             if num_worker > 1:
                 loss = dist.functional.all_reduce_sum(loss) / num_worker
@@ -149,11 +136,11 @@ def train():
 
                 # sample from generated images for comparing
                 # TODO: Support distributed sampling
-                if FLAGS.sample_step > 0 and step and step % FLAGS.sample_step == 0:
+                if sample_steps > 0 and step and step % sample_steps == 0:
                     model.eval()
                     generated_batch_image = diffusion.p_sample_loop((
-                        FLAGS.sample_size, FLAGS.img_channels,
-                        FLAGS.img_resolution, FLAGS.img_resolution
+                        config["sampling"]["batch_size"], config["data"]["img_resolution"],
+                        config["data"]["image_size"], config["data"]["image_size"]
                     ))
                     generated_batch_image = F.clip(generated_batch_image, -1, 1).numpy()
                     generated_batch_image = linear_scale_rev(generated_batch_image)
@@ -165,7 +152,7 @@ def train():
                     model.train()
 
                 # save checkpoints
-                if FLAGS.save_step > 0 and step and step % FLAGS.save_step == 0:
+                if save_steps > 0 and step and step % save_steps == 0:
                     ckpt = {
                         "model": model.state_dict(),
                         "ema_model": ema_model.state_dict(),
@@ -176,6 +163,8 @@ def train():
                     mge.save(ckpt, os.path.join(checkpoint_path, "ckpt.pkl"))
 
                 # TODO: evaluate
+                if validate_steps > 0 and step and step % validate_steps == 0:
+                    pass
 
     if num_worker == 1 or rank == 0:
         writer.close()
