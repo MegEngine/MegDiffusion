@@ -295,14 +295,16 @@ class GaussionDiffusion:
             elif self.model_mean_type == "EPSILON":
                 target = noise
 
+            # Note don't use F.nn.square_loss() here
             return mean_flat((target - model_output) ** 2)
 
         if self.loss_type == "VLB":
             loss = _vlb_loss(x_start, x_t, t)
         elif self.loss_type == "SIMPLE":
             loss = _mse_loss(x_start, x_t, t)
-        elif self.loss_type == "HYBRID":
-            loss = _vlb_loss(x_start, x_t, t) + _mse_loss(x_start, x_t, t)
+        elif self.loss_type == "HYBRID":  # IDDPM Eq. (16)
+            # set lambda = 0.001 to prevent L_{vlb} from overwhelming L_{simple}.
+            loss = 0.001 * _vlb_loss(x_start, x_t, t) + _mse_loss(x_start, x_t, t)
         else:
             raise NotImplementedError(self.loss_type)
 
