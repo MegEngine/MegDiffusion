@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setuptools.setup(
     name = "megdiffusion",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Chai",
     description = "MegEngine implementation of Diffusion Models",
     long_description = long_description,
