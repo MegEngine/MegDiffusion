@@ -18,6 +18,7 @@ converted = [
     "ddpm_lsun_church_converted",
     "ddpm_lsun_church_ema_converted",
     "ddpm_celebahq_256_converted",
+    "ddpm_celebahq_256_ema_converted",
 ]
 
 __all__ = retrained + converted
@@ -136,6 +137,14 @@ def ddpm_lsun_church_ema_converted(**kwargs):
 
 @hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_celebahq_256_converted.pkl")
 def ddpm_celebahq_256_converted(**kwargs):
+    """The pretrained DDPM model on CelebaHQ-256 dataset, which is converted from original checkpoint."""
+    model = _ddpm_unet_default_config(resolution=256)
+    model.diffusion_config = _ddpm_diffusion_default_config()
+    model.channel_order = "RGB"
+    return model
+
+@hub.pretrained("https://data.megengine.org.cn/research/megdiffusion/ddpm_celebahq_256_ema_converted.pkl")
+def ddpm_celebahq_256_ema_converted(**kwargs):
     """The pretrained DDPM model on CelebaHQ-256 dataset, which is converted from original checkpoint."""
     model = _ddpm_unet_default_config(resolution=256)
     model.diffusion_config = _ddpm_diffusion_default_config()
