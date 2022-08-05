@@ -1,0 +1,45 @@
+data:
+    dataset: "CIFAR10"
+    image_size: 32
+    img_resolution: 3
+
+model:
+    in_resolution: 32
+    in_channels: 3
+    out_channels: 6  # --learn_sigma True
+    model_channels: 128
+    channel_mult: [1, 2, 2, 2]
+    num_res_blocks: 3
+    attention_resolutions: [16, 8]
+    dropout: 0.3
+    num_heads: 4
+    conv_resample: True
+    use_scale_shift_norm: True
+
+diffusion:
+    beta_schedule:
+      type: cosine
+      timesteps: 4000
+    model_mean_type: "EPSILON"
+    model_val_type: "LEARNED_RANGE"
+    loss_type: "SIMPLE"
+    rescale_timesteps: True
+    
+training:
+    batch_size: 128
+    n_iters: 500000
+    n_sample: 1000
+    n_snapshot: 5000
+    n_validate: 2000
+    ema: True
+    ema_decay: 0.9999
+
+optim:
+    optimizer: 
+      type: "Adam"
+      lr: 0.0001
+      weight_decay: 0
+
+sampling:
+    batch_size: 64
+

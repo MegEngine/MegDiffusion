@@ -5,7 +5,7 @@ data:
 
 model:
     total_timesteps: 1000
-    in_resolution: 32
+    in_resolution: 256
     in_channel: 3
     out_channel: 3
     base_channel: 128

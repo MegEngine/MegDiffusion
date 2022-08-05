@@ -13,8 +13,8 @@ from ...utils.transform import linear_scale_rev
 from ...utils.vision import make_grid, save_image
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("config", "./configs/iddpm/cifar10.yaml", help="configuration file")
-flags.DEFINE_string("logdir", "./logs/IDDPM_CIFAR10_EPS", help="log directory")
+flags.DEFINE_string("config", "./configs/iddpm/cifar10_uncond_50M_500K.yaml", help="configuration file")
+flags.DEFINE_string("logdir", "./logs/IDDPM_cifar10_uncond_50M_500K", help="log directory")
 flags.DEFINE_string("output_dir", "./output", help="output directory")
 flags.DEFINE_boolean("ema", True, help="load ema model")
 flags.DEFINE_boolean("pretrain", True, help="use pre-trained model")

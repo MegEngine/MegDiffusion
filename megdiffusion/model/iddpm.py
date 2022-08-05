@@ -262,36 +262,42 @@ class UNetModel(M.Module):
     """The full UNet model with attention and timestep embedding.
     
     Args:
+        in_resolution: resolution of input image with same height and width.
         in_channels: channels in the input Tensor.
-        model_channels: base channel count for the model.
         out_channels: channels in the output Tensor.
+        model_channels: base channel count for the model.
         num_res_blocks: number of residual blocks per downsample.
-        attention_level: a collection of levels at which attention will take place.
+        attention_resolutions: resolutions when use attention block.
         dropout: the dropout probability.
         channel_mult: channel multiplier for each level of the UNet.
         conv_resample: if True, use learned convolutions for upsampling and downsampling.
-        num_classes: if specified (as an int), then this model will be
-            class-conditional with `num_classes` classes.
+        num_classes: if it is not zero, then this model will be
+            class-conditional with ``num_classes`` classes.
         num_heads: the number of attention heads in each attention layer.
-    
+
     Note:
 
-        In original paper the argument ``attention_level`` is still named ``attension_resolution``
-        like what DDPM code does. But there is ambiguity between the name and the actual purpose.
-        So we rename it to ``attention_level`` making the description more accurate.
+        In original paper the argument ``attension_resolution`` accept a list of ``ds`` values,
+        ``ds`` is the downsample resolution of the corresponding level of the UNet.
+        For example, if orginal meanning ``attention_resolutions`` is [16, 8],
+        the corresponding ``ds`` values should be [2, 4] for image with resolution of 32x32.
+        It's confused so we still use ``attention_resolutions`` value like what DDPM does.
+
+        See https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/unet.py#L355
     """
     
     def __init__(
         self,
+        in_resolution,
         in_channels,
-        model_channels,
         out_channels,
+        model_channels,
         num_res_blocks,
-        attention_level,
+        attention_resolutions=(16, 8),
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
-        num_classes=None,
+        num_classes=0,
         num_heads=1,
         num_heads_upsample=-1,
         use_scale_shift_norm=False,
@@ -300,17 +306,8 @@ class UNetModel(M.Module):
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
 
-        self.in_channels = in_channels
         self.model_channels = model_channels
-        self.out_channels = out_channels
-        self.num_res_blocks = num_res_blocks
-        self.attention_level = attention_level
-        self.dropout = dropout
-        self.channel_mult = channel_mult
-        self.conv_resample = conv_resample
         self.num_classes = num_classes
-        self.num_heads = num_heads
-        self.num_heads_upsample = num_heads_upsample
 
         time_embed_dim = model_channels * 4
         self.time_embed = M.Sequential(
@@ -319,7 +316,7 @@ class UNetModel(M.Module):
             M.Linear(time_embed_dim, time_embed_dim),
         )
 
-        if self.num_classes is not None:
+        if self.num_classes != 0:
             self.label_emb = M.Embedding(num_classes, time_embed_dim)
 
         self.input_blocks = [
@@ -330,7 +327,7 @@ class UNetModel(M.Module):
 
         input_block_chans = [model_channels]
         ch = model_channels
-        ds = 1
+        rs = in_resolution
         for level, mult in enumerate(channel_mult):
             for _ in range(num_res_blocks):
                 layers = [
@@ -343,7 +340,7 @@ class UNetModel(M.Module):
                     )
                 ]
                 ch = mult * model_channels
-                if ds in attention_level:
+                if rs in attention_resolutions:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads)
                     )
@@ -354,7 +351,7 @@ class UNetModel(M.Module):
                     TimestepEmbedSequential(Downsample(ch, conv_resample))
                 )
                 input_block_chans.append(ch)
-                ds *= 2
+                rs /= 2
 
         self.middle_block = TimestepEmbedSequential(
             ResBlock(
@@ -385,13 +382,13 @@ class UNetModel(M.Module):
                     )
                 ]
                 ch = model_channels * mult
-                if ds in attention_level:
+                if rs in attention_resolutions:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads_upsample)
                     )
                 if level and i == num_res_blocks:
                     layers.append(UpSample(ch, conv_resample))
-                    ds //= 2
+                    rs *= 2
                 self.output_blocks.append(TimestepEmbedSequential(*layers))
             
         self.out = M.Sequential(
@@ -417,13 +414,13 @@ class UNetModel(M.Module):
         """
 
         assert (y is not None) == (
-            self.num_classes is not None
+            self.num_classes != 0
         ), "must specify y if and only if the model is class-conditional"
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
         
-        if self.num_classes is not None:
+        if self.num_classes != 0:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
 

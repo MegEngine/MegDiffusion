@@ -1,16 +1,17 @@
 data:
-    dataset: "CIFAR10"
-    image_size: 32
+    dataset: "ImageNet_64"
+    image_size: 64
     img_resolution: 3
 
 model:
-    in_channel: 3
-    out_channel: 6
+    in_resolution: 64
+    in_channels: 3
+    out_channels: 6  # --learn_sigma True
     model_channels: 128
-    channel_mult: [1, 2, 2, 2]
+    channel_mult: [1, 2, 3, 4]
     num_res_blocks: 3
-    attention_level: [2, 4]
-    dropout: 0.1
+    attention_resolutions: [16, 8]
+    num_heads: 4
     conv_resample: True
     use_scale_shift_norm: True
 
@@ -25,7 +26,7 @@ diffusion:
     
 training:
     batch_size: 128
-    n_iters: 800000
+    n_iters: 1500000
     n_sample: 1000
     n_snapshot: 5000
     n_validate: 2000
@@ -35,9 +36,8 @@ training:
 optim:
     optimizer: 
       type: "Adam"
-      lr: 0.0002
+      lr: 0.0001
       weight_decay: 0
-    grad_clip: 1.0
 
 sampling:
     batch_size: 64
