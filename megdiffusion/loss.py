@@ -37,7 +37,7 @@ def discretized_gaussian_log_likelihood(x: Tensor, *, means: Tensor, log_scales:
     """
     def _approx_standard_normal_cdf(x: Tensor):
         """A fast approximation of the cumulative distribution function of the standard normal."""
-        return 0.5 * (1.0 + F.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * F.pow(x, 3))))
+        return 0.5 * (1.0 + F.tanh(np.sqrt(2.0 / np.pi).astype("float32") * (x + 0.044715 * F.pow(x, 3))))
 
     assert x.shape == means.shape == log_scales.shape
 
@@ -60,7 +60,7 @@ def discretized_gaussian_log_likelihood(x: Tensor, *, means: Tensor, log_scales:
         log_cdf_plus,
         F.where(x > 0.999, 
                 log_one_minus_cdf_min, 
-                F.log(F.maximum(cdf_delta),1e-12)),
+                F.log(F.maximum((cdf_delta),1e-12))),
     )
     assert log_probs.shape == x.shape
     return log_probs

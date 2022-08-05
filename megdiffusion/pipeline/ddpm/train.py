@@ -84,7 +84,7 @@ def train():
     diffusion_config = config["diffusion"]
     diffusion = GaussionDiffusion(
         model=model,
-        betas=build_beta_schedule(diffusion_config["beta_schedule"]),
+        betas=build_beta_schedule(**diffusion_config["beta_schedule"]),
         model_mean_type=diffusion_config["model_mean_type"],
         model_var_type=diffusion_config["model_var_type"],
         loss_type=diffusion_config["loss_type"],
@@ -123,7 +123,7 @@ def train():
             image = Tensor(linear_scale(image))
 
             with gm:
-                loss = diffusion.p_loss(image)
+                loss = diffusion.training_loss(image)
                 gm.backward(loss)
 
             if config["optim"]["grad_clip"]:

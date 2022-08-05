@@ -47,7 +47,6 @@ class GaussionDiffusion:
         self.loss_type = loss_type
         self.rescale_timesteps = rescale_timesteps
 
-
     def _pre_calculate(self, betas):
         """Pre-calculate constant values frequently used in formulas appears in paper.
         Calculated values will be copied to GPU (if it's default device) in advance.
@@ -152,7 +151,7 @@ class GaussionDiffusion:
         Return:
              A tuple (mean, variance, log_variance), all of x_start's shape.
         """
-        shape = x_start.x_start
+        shape = x_start.shape
         posterior_mean = (batch_broadcast(self.posterior_mean_coef1[t], shape) * x_start
             + batch_broadcast(self.posterior_mean_coef2[t], shape) * x_t)
         posterior_variance = batch_broadcast(self.posterior_variance[t], shape)
@@ -168,7 +167,8 @@ class GaussionDiffusion:
             clip_denoised: if True, clip the denoised signal into [-1, 1].
 
         Return:
-            A tuple (mean, variance, log_variance), all of x_t's shape.
+            A tuple (mean, variance, log_variance, model_ouput), all of x_start's shape.
+            Note ``model_ouput`` has been processed according to learning variance or not.
         """
         shape = x_t.shape
 
@@ -222,7 +222,8 @@ class GaussionDiffusion:
             + batch_broadcast(self.posterior_mean_coef2[t], shape) * x_t
         )
 
-        return model_mean, model_variance, model_log_var
+        # model_output will be used in other place, so return it here
+        return model_mean, model_variance, model_log_var, model_output
 
 
     def p_sample(self, x_t, t, clip_denoised=True):
@@ -242,7 +243,7 @@ class GaussionDiffusion:
         nozero_mask = batch_broadcast(t != 0, shape)
         noise = nozero_mask * mge.random.normal(0, 1, shape)
 
-        model_mean, _, model_log_var = self.p_mean_variance(x_t, t, clip_denoised)
+        model_mean, _, model_log_var, _ = self.p_mean_variance(x_t, t, clip_denoised)
         
         return model_mean + F.exp(0.5 * model_log_var) * noise
 
@@ -253,23 +254,23 @@ class GaussionDiffusion:
             x = self.p_sample(x, F.full((shape[0],), i))
         return x
         
-    def p_loss(self, x_start, t=None, noise=None):
+    def training_loss(self, x_start, t=None, noise=None):
+
+        shape = x_start.shape
+
         if t is None:
             t = mge.Tensor(np.random.randint(0, self.timesteps, len(x_start)))
-        noise = mge.random.normal(0, 1, x_start.shape) if noise is None else noise
+        noise = mge.random.normal(0, 1, shape) if noise is None else noise
+
         x_t = self.q_sample(x_start, t, noise)
 
-        model_output = self.model(x_t, t)
-        if self.model_var_type in ["LEARNED", "LEARNED_RANGE"]:
-            model_output = F.split(model_output, 2, axis=1)[0]
+        true_mean, _, true_log_var = self.q_posterior_mean_variance(x_start, x_t, t)
+        pred_mean, _, pred_log_var, model_output = self.p_mean_variance(x_t, t)  # model forward here
 
-        def _vlb_loss(x_start, x_t, t):
+        def _vlb_loss(rescale=False):
             """calculate VLB bound bits per dimensions"""
-            shape = x_t.shape
-
-            # L_{t-1} := D_{KL} ( q(x_{t-1} | x_t, x_0) || p (x_{t-1} | x_t) )
-            true_mean, _, true_log_var = self.q_posterior_mean_variance(x_start, x_t, t)
-            pred_mean, _, pred_log_var = self.p_mean_variance(x_t, t)
+            
+            # L_{t-1} := D_{KL} ( q(x_{t-1} | x_t, x_0) || p (x_{t-1} | x_t))
             kl = normal_kl(true_mean, true_log_var, pred_mean, pred_log_var)
             kl = mean_flat(kl) / F.log(2.)  # get bit per dimension loss
 
@@ -284,28 +285,32 @@ class GaussionDiffusion:
 
             # L_{t} is not need to be trained so ignore here
 
-            return F.where((t == 0), l0_nll, kl)
+            loss = F.where((t == 0), l0_nll, kl)
 
-        def _mse_loss(x_start, x_t, t):
+            if rescale:
+                loss = loss * self.timesteps
+            return loss
+
+        def _simple_loss():
             
-            if self.model_mean_type == "PREVIOUS_X":
-                target = self.q_posterior_mean_variance(x_start, x_t, t)
-            elif self.model_mean_type == "START_X":
-                target = x_start
-            elif self.model_mean_type == "EPSILON":
-                target = noise
+            loss = mean_flat(({
+                "PREVIOUS_X": true_mean,
+                "START_X": x_start,
+                "EPSILON": noise,
+            }[self.model_mean_type] - model_output) ** 2) # MSE
 
-            # Note don't use F.nn.square_loss() here
-            return mean_flat((target - model_output) ** 2)
+            return loss
 
-        if self.loss_type == "VLB":
-            loss = _vlb_loss(x_start, x_t, t)
-        elif self.loss_type == "SIMPLE":
-            loss = _mse_loss(x_start, x_t, t)
-        elif self.loss_type == "HYBRID":  # IDDPM Eq. (16)
-            # set lambda = 0.001 to prevent L_{vlb} from overwhelming L_{simple}.
-            loss = 0.001 * _vlb_loss(x_start, x_t, t) + _mse_loss(x_start, x_t, t)
-        else:
-            raise NotImplementedError(self.loss_type)
+        def _hybrid_loss(lamb=0.001):
+            """
+            See IDDPM Eq. (16) and default config ``rescale_learned_sigmas=True`` in original code.
+            Divide by 1000 for equivalence with initial implementation.
+            Without a factor of 1/1000, the VB term hurts the MSE term.
+            """
+            return lamb * _vlb_loss() + _simple_loss()
 
-        return loss
+        return { 
+            "VLB": _vlb_loss,
+            "SIMPLE": _simple_loss,
+            "HYBRID": _hybrid_loss,
+        }[self.loss_type]()

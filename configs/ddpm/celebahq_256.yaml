@@ -22,7 +22,7 @@ diffusion:
       start: 0.0001
       end: 0.02
     model_mean_type: "EPSILON"
-    model_val_type: "FIXED_SMALL"
+    model_var_type: "FIXED_SMALL"
     loss_type: "SIMPLE"
     
 training:

@@ -40,5 +40,5 @@ optim:
       weight_decay: 0
 
 sampling:
-    batch_size: 64
+    batch_size: 1
 

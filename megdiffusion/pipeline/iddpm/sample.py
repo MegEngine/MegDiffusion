@@ -5,7 +5,7 @@ from absl import app, flags
 import megengine as mge
 import megengine.functional as F
 
-from ...model.pretrain import iddpm_cifar10_uncond_50M_500K_converted
+from ...model import pretrain
 from ...model.iddpm import UNetModel
 from ...diffusion import GaussionDiffusion
 from ...diffusion.schedule import build_beta_schedule, cosine_schedule
@@ -16,6 +16,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("config", "./configs/iddpm/cifar10_uncond_50M_500K.yaml", help="configuration file")
 flags.DEFINE_string("logdir", "./logs/IDDPM_cifar10_uncond_50M_500K", help="log directory")
 flags.DEFINE_string("output_dir", "./output", help="output directory")
+flags.DEFINE_integer("timesteps", None, help="sample timestep")
 flags.DEFINE_boolean("ema", True, help="load ema model")
 flags.DEFINE_boolean("pretrain", True, help="use pre-trained model")
 flags.DEFINE_boolean("grid", True, help="make grid of the batch image")
@@ -27,7 +28,8 @@ def infer():
 
     # model setup
     if FLAGS.pretrain:
-        model = iddpm_cifar10_uncond_50M_500K_converted(pretrained=True)
+        original_name = os.path.splitext(os.path.basename(FLAGS.config))[0]
+        model = getattr(pretrain, f"iddpm_{original_name}_converted")(pretrained=True)
     else:  # use model trained from scratch
         assert os.path.isdir(FLAGS.logdir)
         checkpoint = mge.load(os.path.join(FLAGS.logdir, "checkpoints", "ckpt.pkl"))
@@ -44,6 +46,7 @@ def infer():
 
     diffusion = GaussionDiffusion(
         model=model,
+        timesteps=FLAGS.timesteps,
         betas=build_beta_schedule(**diffusion_config["beta_schedule"]),
         model_mean_type=diffusion_config["model_mean_type"],
         model_var_type=diffusion_config["model_var_type"],
