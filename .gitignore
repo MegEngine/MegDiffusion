@@ -1,3 +1,8 @@
+# Editor and IDE
+.vs/
+.vscode/
+.idea/
+
 # Logs and output
 logs/
 output/
