@@ -204,7 +204,7 @@ class GaussionDiffusion:
                 batch_broadcast(1.0 / self.posterior_mean_coef1[t], shape) * model_output -
                 batch_broadcast(self.frac_coef1_coef2[t], shape) * x_t
             )
-        elif self.model_mean_type == "EPSILON":  # model_output is noise between x_{t-1} and x_{t}
+        elif self.model_mean_type == "EPSILON":  # model_output is the noise between x_{0} and x_{t}
             predict_x_start = (
                 batch_broadcast(self.sqrt_recip_alphas_cumprod[t], shape) * x_t -
                 batch_broadcast(self.sqrt_recipm1_alphas_cumprod[t], shape) * model_output
@@ -216,7 +216,7 @@ class GaussionDiffusion:
         if clip_denoised:
             predict_x_start = F.clip(predict_x_start, -1., 1.)
 
-        # get predicted x_{t-1} from predicted x_0 and input x_t
+        # get predicted x_{t-1} from predicted x_{0} and input x_{t}
         model_mean = (
             batch_broadcast(self.posterior_mean_coef1[t], shape) * predict_x_start
             + batch_broadcast(self.posterior_mean_coef2[t], shape) * x_t
